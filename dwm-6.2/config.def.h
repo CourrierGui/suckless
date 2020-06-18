@@ -1,5 +1,7 @@
 /* See LICENSE file for copyright and license details. */
 
+#include <X11/XF86keysym.h>
+
 /* appearance */
 static const unsigned int borderpx  = 1;        /* border pixel of windows */
 static const unsigned int snap      = 32;       /* snap pixel */
@@ -11,10 +13,7 @@ static const unsigned int gappov    = 10;       /* vert outer gap between window
 static const int smartgaps          = 0;        /* 1 means no outer gap when there is only one window */
 static const int showbar            = 1;        /* 0 means no bar */
 static const int topbar             = 1;        /* 0 means bottom bar */
-static const char *fonts[]          = {
-	"Linux Libertine Mono:size=10",
-	"JoyPixels:pixelsize=10:antialias=true:autohint=true"
-};
+static const char *fonts[]          = { "Linux Libertine Mono:size=10", "JoyPixels:pixelsize=10:antialias=true:autohint=true" };
 static const char dmenufont[]       = "Linux Libertine Mono:size=10";
 static const char col_gray1[]       = "#222222";
 static const char col_gray2[]       = "#444444";
@@ -88,6 +87,7 @@ static Key keys[] = {
 	{ MODKEY,           XK_d,      spawn,          {.v = dmenucmd } },
 	{ MODKEY,           XK_Return, spawn,          {.v = termcmd } },
 	{ MODKEY,           XK_b,      togglebar,      {0} },
+	{ MODKEY,           XK_w,      spawn,      SHCMD("$BROWSER") },
 	/* { MODKEY,           XK_j,      focusstack,     {.i = +1 } }, */
 	/* { MODKEY,           XK_k,      focusstack,     {.i = -1 } }, */
   STACKKEYS(MODKEY,                          focus)
@@ -138,6 +138,7 @@ static Key keys[] = {
   { MODKEY|Mod4Mask,              XK_o,      incrohgaps,     {.i = -1 } },
   { MODKEY|ShiftMask,             XK_y,      incrovgaps,     {.i = +1 } },
   { MODKEY|ShiftMask,             XK_o,      incrovgaps,     {.i = -1 } },
+  { 0, XF86XK_Sleep,             spawn, SHCMD("slock")},
 };
 
 /* button definitions */
