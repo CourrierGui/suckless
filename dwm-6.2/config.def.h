@@ -87,7 +87,7 @@ static const char *termcmd[]  = { "st", NULL };
 
 /* commands spawned when clicking statusbar, the mouse button pressed is exported as BUTTON */
 /* static char *statuscmds[] = { "notify-send Mouse$BUTTON" }; */
-static char *statuscmds[] = { "clock", "battery", "internet", "volume", "taskbar" };
+static char *statuscmds[] = { "taskbar", "volume", "internet", "battery", "clock" };
 static char *statuscmd[] = { "/bin/sh", "-c", NULL, NULL };
 
 static Key keys[] = {
@@ -130,23 +130,23 @@ static Key keys[] = {
   TAGKEYS(            XK_underscore,             7)
   TAGKEYS(            XK_ccedilla,               8)
 
-  { MODKEY|Mod4Mask,              XK_h,      incrgaps,       {.i = +1 } },
-  { MODKEY|Mod4Mask,              XK_l,      incrgaps,       {.i = -1 } },
-  { MODKEY|Mod4Mask|ShiftMask,    XK_h,      incrogaps,      {.i = +1 } },
-  { MODKEY|Mod4Mask|ShiftMask,    XK_l,      incrogaps,      {.i = -1 } },
-  { MODKEY|Mod4Mask|ControlMask,  XK_h,      incrigaps,      {.i = +1 } },
-  { MODKEY|Mod4Mask|ControlMask,  XK_l,      incrigaps,      {.i = -1 } },
-  { MODKEY|Mod4Mask,              XK_0,      togglegaps,     {0} },
-  { MODKEY|Mod4Mask|ShiftMask,    XK_0,      defaultgaps,    {0} },
-  { MODKEY,                       XK_y,      incrihgaps,     {.i = +1 } },
-  { MODKEY,                       XK_o,      incrihgaps,     {.i = -1 } },
-  { MODKEY|ControlMask,           XK_y,      incrivgaps,     {.i = +1 } },
-  { MODKEY|ControlMask,           XK_o,      incrivgaps,     {.i = -1 } },
-  { MODKEY|Mod4Mask,              XK_y,      incrohgaps,     {.i = +1 } },
-  { MODKEY|Mod4Mask,              XK_o,      incrohgaps,     {.i = -1 } },
-  { MODKEY|ShiftMask,             XK_y,      incrovgaps,     {.i = +1 } },
-  { MODKEY|ShiftMask,             XK_o,      incrovgaps,     {.i = -1 } },
-  { 0, XF86XK_Sleep,             spawn, SHCMD("slock")},
+  { MODKEY|Mod4Mask,              XK_h,         incrgaps,       {.i = +1 } },
+  { MODKEY|Mod4Mask,              XK_l,         incrgaps,       {.i = -1 } },
+  { MODKEY|Mod4Mask|ShiftMask,    XK_h,         incrogaps,      {.i = +1 } },
+  { MODKEY|Mod4Mask|ShiftMask,    XK_l,         incrogaps,      {.i = -1 } },
+  { MODKEY|Mod4Mask|ControlMask,  XK_h,         incrigaps,      {.i = +1 } },
+  { MODKEY|Mod4Mask|ControlMask,  XK_l,         incrigaps,      {.i = -1 } },
+  { MODKEY|Mod4Mask,              XK_0,         togglegaps,     {0} },
+  { MODKEY|Mod4Mask|ShiftMask,    XK_0,         defaultgaps,    {0} },
+  { MODKEY,                       XK_y,         incrihgaps,     {.i = +1 } },
+  { MODKEY,                       XK_o,         incrihgaps,     {.i = -1 } },
+  { MODKEY|ControlMask,           XK_y,         incrivgaps,     {.i = +1 } },
+  { MODKEY|ControlMask,           XK_o,         incrivgaps,     {.i = -1 } },
+  { MODKEY|Mod4Mask,              XK_y,         incrohgaps,     {.i = +1 } },
+  { MODKEY|Mod4Mask,              XK_o,         incrohgaps,     {.i = -1 } },
+  { MODKEY|ShiftMask,             XK_y,         incrovgaps,     {.i = +1 } },
+  { MODKEY|ShiftMask,             XK_o,         incrovgaps,     {.i = -1 } },
+  { 0,                            XF86XK_Sleep, spawn,          SHCMD("slock")},
 };
 
 /* button definitions */
