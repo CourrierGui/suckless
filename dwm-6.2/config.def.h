@@ -87,7 +87,7 @@ static const char *termcmd[]  = { "st", NULL };
 
 /* commands spawned when clicking statusbar, the mouse button pressed is exported as BUTTON */
 /* static char *statuscmds[] = { "notify-send Mouse$BUTTON" }; */
-static char *statuscmds[] = { "taskbar", "volume", "internet", "battery", "clock" };
+static char *statuscmds[] = { "taskbar", "volume", "internet", "battery", "clock", "cpu", "memory" };
 static char *statuscmd[] = { "/bin/sh", "-c", NULL, NULL };
 
 static Key keys[] = {
