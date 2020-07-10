@@ -5,10 +5,10 @@ static const Block blocks[] = {
 	{"",      "taskbar",                     30,                   9},
 	{"",      "volume",                       0,                  10},
 	{"",      "internet",                     5,                   4},
+	{"",      "memory",                      10,                  14},
+	{"",      "cpu",                         10,                  13},
 	{"",      "battery | tr \'\n\' \' \'",    5,                   3},
 	{"",      "clock",                        1,                   8},
-	{"",      "cpu",                         10,                  13},
-	{"",      "memory",                      10,                  14},
 	//{"",	"pacpackages",	0,	8},
 	//{"",	"news",		0,	6},
 	/* {"",	"crypto",	0,	13}, */
