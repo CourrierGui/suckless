@@ -153,7 +153,7 @@ static Key keys[] = {
 	{ 0,                           XF86XK_MonBrightnessUp,   spawn,       SHCMD("xbacklight -inc 15") },
 	{ 0,                           XF86XK_MonBrightnessDown, spawn,       SHCMD("xbacklight -dec 15") },
 	{ 0,                           XF86XK_TouchpadToggle,    spawn,       SHCMD("toggle-touchpad") },
-
+	{ 0,                           XF86XK_ScreenSaver,       spawn,       SHCMD("[ $(xbacklight -get | sed \"s/\\.[0-9]\\+//\") = \"0\" ] && xbacklight -set 100 || xbacklight -set 0") },
 };
 
 /* button definitions */
