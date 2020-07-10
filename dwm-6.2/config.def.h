@@ -152,6 +152,8 @@ static Key keys[] = {
 	{ 0,                           XF86XK_AudioLowerVolume,  spawn,       SHCMD("pamixer --allow-boost -d 3; kill -44 $(pidof dwmblocks)") },
 	{ 0,                           XF86XK_MonBrightnessUp,   spawn,       SHCMD("xbacklight -inc 15") },
 	{ 0,                           XF86XK_MonBrightnessDown, spawn,       SHCMD("xbacklight -dec 15") },
+	{ 0,                           XF86XK_TouchpadToggle,    spawn,       SHCMD("toggle-touchpad") },
+
 };
 
 /* button definitions */
