@@ -14,17 +14,15 @@
 
 typedef struct Page {
 	guint64 id;
-	WebKitWebPage *webpage;
-	struct Page *next;
+	WebKitWebPage* webpage;
+	struct Page* next;
 } Page;
 
 static int pipein, pipeout;
-static Page *pages;
+static Page* pages;
 
-Page *
-newpage(WebKitWebPage *page)
-{
-	Page *p;
+Page* newpage(WebKitWebPage* page) {
+	Page* p;
 
 	if (!(p = calloc(1, sizeof(Page))))
 		die("Cannot malloc!\n");
@@ -38,9 +36,7 @@ newpage(WebKitWebPage *page)
 	return p;
 }
 
-static void
-msgsurf(Page *p, const char *s)
-{
+static void msgsurf(Page* p, const char* s) {
 	static char msg[MSGBUFSZ];
 	size_t sln = strlen(s);
 	int ret;
@@ -56,14 +52,12 @@ msgsurf(Page *p, const char *s)
 		fprintf(stderr, "webext: error sending: %.*s\n", ret-2, msg+2);
 }
 
-static gboolean
-readpipe(GIOChannel *s, GIOCondition c, gpointer unused)
-{
+static gboolean readpipe(GIOChannel* s, GIOCondition c, gpointer unused) {
 	static char msg[MSGBUFSZ], msgsz;
-	WebKitDOMDOMWindow *view;
-	GError *gerr = NULL;
+	WebKitDOMDOMWindow* view;
+	GError* gerr = NULL;
 	glong wh, ww;
-	Page *p;
+	Page* p;
 
 	if (g_io_channel_read_chars(s, msg, LENGTH(msg), NULL, &gerr) !=
 	    G_IO_STATUS_NORMAL) {
@@ -105,16 +99,12 @@ readpipe(GIOChannel *s, GIOCondition c, gpointer unused)
 	return TRUE;
 }
 
-static void
-webpagecreated(WebKitWebExtension *e, WebKitWebPage *wp, gpointer unused)
-{
-	Page *p = newpage(wp);
+static void webpagecreated(WebKitWebExtension* e, WebKitWebPage* wp, gpointer unused) {
+	Page* p = newpage(wp);
 }
 
-G_MODULE_EXPORT void
-webkit_web_extension_initialize_with_user_data(WebKitWebExtension *e, GVariant *gv)
-{
-	GIOChannel *gchanpipe;
+G_MODULE_EXPORT void webkit_web_extension_initialize_with_user_data(WebKitWebExtension* e, GVariant* gv) {
+	GIOChannel* gchanpipe;
 
 	g_signal_connect(e, "page-created", G_CALLBACK(webpagecreated), NULL);
 

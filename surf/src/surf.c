@@ -147,10 +147,8 @@ void setup(void) {
 	}
 
 	for (i = 0; i < LENGTH(uriparams); ++i) {
-		if (regcomp(&(uriparams[i].re), uriparams[i].uri,
-		    REG_EXTENDED)) {
-			fprintf(stderr, "Could not compile regex: %s\n",
-			        uriparams[i].uri);
+		if (regcomp(&(uriparams[i].re), uriparams[i].uri, REG_EXTENDED)) {
+			fprintf(stderr, "Could not compile regex: %s\n", uriparams[i].uri);
 			uriparams[i].uri = NULL;
 			continue;
 		}
@@ -166,8 +164,7 @@ void setup(void) {
 void sigchld(int unused) {
 	if (signal(SIGCHLD, sigchld) == SIG_ERR)
 		die("Can't install SIGCHLD handler");
-	while (waitpid(-1, NULL, WNOHANG) > 0)
-		;
+	while (waitpid(-1, NULL, WNOHANG) > 0);
 }
 
 void sighup(int unused) {
@@ -1599,7 +1596,7 @@ void clickexternplayer(Client* c, const Arg* a, WebKitHitTestResult* h) {
 	spawn(c, &arg);
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char** argv) {
 	Arg arg;
 	Client* c;
 
