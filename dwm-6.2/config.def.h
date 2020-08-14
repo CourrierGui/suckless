@@ -14,10 +14,10 @@ static const int smartgaps          = 0;        /* 1 means no outer gap when the
 static const int showbar            = 1;        /* 0 means no bar */
 static const int topbar             = 1;        /* 0 means bottom bar */
 static const char *fonts[]          = {
-	"Linux Libertine Mono:size=12",
+	"Source Code Pro:size=12",
 	"JoyPixels:pixelsize=12:antialias=true:autohint=true"
 };
-static const char dmenufont[]       = "Linux Libertine Mono:size=12";
+static const char dmenufont[]       = "Source Code Pro:size=12";
 static const char col_gray1[]       = "#222222";
 static const char col_gray2[]       = "#444444";
 static const char col_gray3[]       = "#bbbbbb";
@@ -146,6 +146,8 @@ static Key keys[] = {
   { MODKEY|Mod4Mask,             XK_o,                     incrohgaps,  {.i = -1 } },
   { MODKEY|ShiftMask,            XK_y,                     incrovgaps,  {.i = +1 } },
   { MODKEY|ShiftMask,            XK_o,                     incrovgaps,  {.i = -1 } },
+  { MODKEY|ShiftMask,            XK_o,                     incrovgaps,  {.i = -1 } },
+  { 0,                           XK_Print,                 spawn,       SHCMD("scrot ~/Pictures/screenshots/%Y-%m-%d-%T-screenshot.png") },
   { 0,                           XF86XK_Sleep,             spawn,       SHCMD("slock") },
 	{ 0,                           XF86XK_AudioMute,         spawn,       SHCMD("pamixer -t; kill -44 $(pidof dwmblocks)") },
 	{ 0,                           XF86XK_AudioRaiseVolume,  spawn,       SHCMD("pamixer --allow-boost -i 3; kill -44 $(pidof dwmblocks)") },

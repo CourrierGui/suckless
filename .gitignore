@@ -1,5 +1,5 @@
 tags
 *.o
 dwm-6.2/config.h
-dwm-backup
+*-backup
 
