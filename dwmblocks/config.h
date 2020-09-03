@@ -2,7 +2,7 @@
 
 static const Block blocks[] = {
 	/*Icon*/  /*Command*/                  /*Update Interval*/  /*Update Signal*/
-	{"",      "taskbar",                     30,                   9},
+	/* {"",      "taskbar",                     30,                   9}, */
 	{"",      "volume",                       0,                  10},
 	{"",      "internet",                     5,                   4},
 	{"",      "memory",                      10,                  14},
