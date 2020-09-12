@@ -55,13 +55,6 @@ static const float mfact     = 0.55; /* factor of master area size [0.05..0.95] 
 static const int nmaster     = 1;    /* number of clients in master area */
 static const int resizehints = 1;    /* 1 means respect size hints in tiled resizals */
 
-static const Layout layouts[] = {
-	/* symbol     arrange function */
-	{ "[]=",      tile },    /* first entry is default */
-	{ "><>",      NULL },    /* no layout function means floating behavior */
-	{ "[M]",      monocle },
-};
-
 /* key definitions */
 #define MODKEY Mod4Mask
 
@@ -89,9 +82,19 @@ static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() 
 static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", col_gray1, "-nf", col_gray3, "-sb", col_cyan, "-sf", col_gray4, NULL };
 static const char *termcmd[]  = { "st", NULL };
 
+static const Layout layouts[] = {
+	/* symbol     arrange function */
+	{ "[]=",      tile },    /* first entry is default */
+	{ "><>",      NULL },    /* no layout function means floating behavior */
+	{ "[M]",      monocle },
+};
+
 /* commands spawned when clicking statusbar, the mouse button pressed is exported as BUTTON */
 /* static char *statuscmds[] = { "notify-send Mouse$BUTTON" }; */
-static char *statuscmds[] = { "taskbar", "volume", "internet", "battery", "clock", "cpu", "memory" };
+static char *statuscmds[] = {
+	"taskbar", "volume", "internet",
+	"battery", "clock", "cpu", "memory"
+};
 static char *statuscmd[] = { "/bin/sh", "-c", NULL, NULL };
 
 static Key keys[] = {
@@ -103,25 +106,25 @@ static Key keys[] = {
 	/* { MODKEY|ShiftMask, XK_i,      incnmaster,     {.i = -1 } }, */
 	/* { MODKEY,           XK_Return, zoom,           {0} }, */
 
-	{ MODKEY, XK_Tab,       view,      {0} }, // switch between previous and current tag
-	{ MODKEY, XK_semicolon, shiftview, { .i =  1 } },
-	{ MODKEY, XK_comma,     shiftview, { .i = -1 } },
+	{ MODKEY, XK_Tab,       view,      {0}       }, // switch between previous and current tag
+	{ MODKEY, XK_semicolon, shiftview, { .i= 1 } }, // increase all tags by one
+	{ MODKEY, XK_comma,     shiftview, { .i=-1 } }, // decrease all tags by one
 
 	{ MODKEY|ShiftMask, XK_c,      killclient,     {0} }, // close the current client
 	{ MODKEY|ShiftMask, XK_q,      quit,           {0} }, // quit dwm
 
 	// Layouts
-	{ MODKEY,           XK_t,      setlayout,      {.v = &layouts[0]} },
-	{ MODKEY,           XK_f,      setlayout,      {.v = &layouts[1]} },
-	{ MODKEY,           XK_m,      setlayout,      {.v = &layouts[2]} },
-	{ MODKEY,           XK_space,  setlayout,      {0} },
-	{ MODKEY|ShiftMask, XK_space,  togglefloating, {0} },
+	{ MODKEY,           XK_t,      setlayout,      {.v = &layouts[0]} }, // tile layout
+	{ MODKEY,           XK_f,      setlayout,      {.v = &layouts[1]} }, // floating layout
+	{ MODKEY,           XK_m,      setlayout,      {.v = &layouts[2]} }, // monocle layout
+	{ MODKEY,           XK_space,  setlayout,      {0} },                // toggle between the last 2 layouts
+	{ MODKEY|ShiftMask, XK_space,  togglefloating, {0} },                // toggle current client between floating or not
 
 	{ MODKEY,             XK_agrave, view, {.ui = ~0 } }, // display all tags: all the clients in the screen
-	{ MODKEY|ShiftMask,   XK_agrave, view, {.ui = ~0 } }, // put the client in all the tags
+	{ MODKEY|ShiftMask,   XK_agrave, tag,  {.ui = ~0 } }, // put the client in all the tags
 
-	{ MODKEY,           XK_d,      spawn,          {.v = dmenucmd } },
-	{ MODKEY,           XK_Return, spawn,          {.v = termcmd } },
+	{ MODKEY,           XK_d,      spawn,          {.v = dmenucmd }  },
+	{ MODKEY,           XK_Return, spawn,          {.v = termcmd  }  },
 	{ MODKEY,           XK_w,      spawn,          SHCMD("$BROWSER") },
 	{ MODKEY,           XK_c,      spawn,          SHCMD("st -e calcurse") },
 
