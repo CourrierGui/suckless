@@ -1,5 +1,7 @@
 tags
 *.o
-dwm-6.2/config.h
+dwm/dwm
+dwm/config.h
+dwmblocks/config.h
+dwmblocks/dwmblocks
 *-backup
-
