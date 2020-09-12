@@ -518,9 +518,7 @@ unswallow(Client *c)
 	arrange(c->mon);
 }
 
-void
-buttonpress(XEvent *e)
-{
+void buttonpress(XEvent *e) {
 	unsigned int i, x, click;
 	Arg arg = {0};
 	Client *c;

@@ -99,6 +99,7 @@ static char *statuscmd[] = { "/bin/sh", "-c", NULL, NULL };
 
 static Key keys[] = {
 	/* modifier         key        function        argument */
+
 	STACKKEYS(MODKEY,           focus), // j, k to move cursor up and down, a, z, e, and r to move to client 0, 1, 2 and 3, x to move to the last one and p to the previous
 	STACKKEYS(MODKEY|ShiftMask, push ), // same as above but move the client inside
 
@@ -177,17 +178,24 @@ static Key keys[] = {
 /* click can be ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle, ClkClientWin, or ClkRootWin */
 static Button buttons[] = {
 	/* click                event mask      button          function        argument */
-	{ ClkLtSymbol,          0,              Button1,        setlayout,      {0} },
-	{ ClkLtSymbol,          0,              Button3,        setlayout,      {.v = &layouts[2]} },
+
+	// Handle clicks on the layout text
+	{ ClkLtSymbol,          0,              Button1,        setlayout,      {0} },                // swap between the 2 previous layouts
+	{ ClkLtSymbol,          0,              Button3,        setlayout,      {.v = &layouts[1]} }, // set the floating layout
+
 	{ ClkWinTitle,          0,              Button2,        zoom,           {0} },
+
+	// Handle clicks on the status bar
 	{ ClkStatusText,        0,              Button1,        spawn,          {.v = statuscmd } },
 	{ ClkStatusText,        0,              Button2,        spawn,          {.v = statuscmd } },
 	{ ClkStatusText,        0,              Button3,        spawn,          {.v = statuscmd } },
-	{ ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
-	{ ClkClientWin,         MODKEY,         Button2,        togglefloating, {0} },
-	{ ClkClientWin,         MODKEY,         Button3,        resizemouse,    {0} },
-	{ ClkTagBar,            0,              Button1,        view,           {0} },
-	{ ClkTagBar,            0,              Button3,        toggleview,     {0} },
-	{ ClkTagBar,            MODKEY,         Button1,        tag,            {0} },
-	{ ClkTagBar,            MODKEY,         Button3,        toggletag,      {0} },
+
+	{ ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} }, // drag the client with the mouse
+	{ ClkClientWin,         MODKEY,         Button2,        togglefloating, {0} }, // toggle floating for the clicked client
+	{ ClkClientWin,         MODKEY,         Button3,        resizemouse,    {0} }, // resize the window
+
+	{ ClkTagBar,            0,              Button1,        view,           {0} }, // display corresponding tag
+	{ ClkTagBar,            0,              Button3,        toggleview,     {0} }, // toggle the display of the corresponding tag
+	{ ClkTagBar,            MODKEY,         Button1,        tag,            {0} }, // move the current client to the corresponding tag
+	{ ClkTagBar,            MODKEY,         Button3,        toggletag,      {0} }, // toggle the corresponding tag for the current client
 };
