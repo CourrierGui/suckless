@@ -155,15 +155,19 @@ static Key keys[] = {
 	{ MODKEY|ControlMask,           XK_o,      incrovgaps,  {.i = +3 } },   // increase vertical gaps around clients
 	{ MODKEY|ShiftMask|ControlMask, XK_o,      incrovgaps,  {.i = -3 } },   // decrease vertical gaps around clients
 
-	{ 0, XK_Print,                 spawn, SHCMD("scrot ~/Pictures/screenshots/%Y-%m-%d-%T-screenshot.png") },
-	{ 0, XF86XK_Sleep,             spawn, SHCMD("slock")                                                   },
-	{ 0, XF86XK_AudioMute,         spawn, SHCMD("pamixer -t; kill -44 $(pidof dwmblocks)")                 },
-	{ 0, XF86XK_AudioRaiseVolume,  spawn, SHCMD("pamixer --allow-boost -i 3; kill -44 $(pidof dwmblocks)") },
-	{ 0, XF86XK_AudioLowerVolume,  spawn, SHCMD("pamixer --allow-boost -d 3; kill -44 $(pidof dwmblocks)") },
-	{ 0, XF86XK_MonBrightnessUp,   spawn, SHCMD("xbacklight -inc 15")                                      },
-	{ 0, XF86XK_MonBrightnessDown, spawn, SHCMD("xbacklight -dec 15")                                      },
-	{ 0, XF86XK_TouchpadToggle,    spawn, SHCMD("toggle-touchpad")                                         },
-	{ 0, XF86XK_ScreenSaver,       spawn, SHCMD("[ $(xbacklight -get | sed \"s/\\.[0-9]\\+//\") = \"0\" ] && xbacklight -set 100 || xbacklight -set 0") },
+	/* { 0, XK_Print,                 spawn, SHCMD("scrot ~/Pictures/screenshots/%Y-%m-%d-%T-screenshot.png") }, */
+	{ 0,         XK_Print,                 spawn, SHCMD("flameshot full -p ~/Pictures/screenshots") },
+	{ ShiftMask, XK_Print,                 spawn, SHCMD("flameshot gui -p ~/Pictures/screenshots") },
+	{ 0,         XF86XK_Sleep,             spawn, SHCMD("slock")                                                   },
+	{ 0,         XF86XK_AudioMute,         spawn, SHCMD("pamixer -t; kill -44 $(pidof dwmblocks)")                 },
+	{ 0,         XF86XK_AudioRaiseVolume,  spawn, SHCMD("pamixer --allow-boost -i 3; kill -44 $(pidof dwmblocks)") },
+	{ 0,         XF86XK_AudioLowerVolume,  spawn, SHCMD("pamixer --allow-boost -d 3; kill -44 $(pidof dwmblocks)") },
+	{ 0,         XF86XK_MonBrightnessUp,   spawn, SHCMD("xbacklight -inc 15")                                      },
+	{ 0,         XF86XK_MonBrightnessDown, spawn, SHCMD("xbacklight -dec 15")                                      },
+	{ 0,         XF86XK_TouchpadToggle,    spawn, SHCMD("toggle-touchpad")                                         },
+	{ 0,         XF86XK_ScreenSaver,       spawn, SHCMD("[ $(xbacklight -get | sed \"s/\\.[0-9]\\+//\") = \"0\" ] && xbacklight -set 100 || xbacklight -set 0") },
+
+	{ MODKEY,           XK_F1,      spawn,          SHCMD("bootmenu") },
 };
 
 /* button definitions */
