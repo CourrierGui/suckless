@@ -22,6 +22,8 @@ static const char col_gray1[]      = "#222222"; // tags and status bar font colo
 static const char col_gray2[]      = "#444444"; // border of clients ?
 static const char col_gray3[]      = "#444444"; // tags and status bar background color
 static const char col_gray4[]      = "#004466"; // selected tag and window title font color
+static const char dmenu_nfg[]      = "#aaaaaa"; // selected tag and window title font color
+static const char dmenu_sfg[]      = "#eeeeee"; // selected tag and window title font color
 static const char col_cyan[]       = "#005577";
 static const unsigned int baralpha    = 0x90;   // top bar opacity
 static const unsigned int borderalpha = OPAQUE;
@@ -79,7 +81,7 @@ static const int resizehints = 1;    /* 1 means respect size hints in tiled resi
 
 /* commands */
 static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */
-static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", col_gray1, "-nf", col_gray3, "-sb", col_cyan, "-sf", col_gray4, NULL };
+static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", col_gray1, "-nf", dmenu_nfg, "-sb", col_cyan, "-sf", dmenu_sfg, NULL };
 static const char *termcmd[]  = { "st", NULL };
 
 static const Layout layouts[] = {
