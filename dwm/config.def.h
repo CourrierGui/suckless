@@ -3,39 +3,44 @@
 #include <X11/XF86keysym.h>
 
 /* appearance */
-static const unsigned int borderpx = 1;  /* border pixel of windows */
-static const unsigned int snap     = 32; /* snap pixel */
-static const int swallowfloating   = 0;  /* 1 means swallow floating windows by default */
-static const unsigned int gappih   = 10; /* horiz inner gap between windows */
-static const unsigned int gappiv   = 10; /* vert inner gap between windows */
-static const unsigned int gappoh   = 10; /* horiz outer gap between windows and screen edge */
-static const unsigned int gappov   = 10; /* vert outer gap between windows and screen edge */
-static const int smartgaps         = 0;  /* 1 means no outer gap when there is only one window */
-static const int showbar           = 1;  /* 0 means no bar */
-static const int topbar            = 1;  /* 0 means bottom bar */
-static const char *fonts[]         = {
-	"Source Code Pro:size=12",
-	"JoyPixels:pixelsize=14:antialias=true:autohint=true"
+static unsigned int borderpx        = 1;  /* border pixel of windows */
+static unsigned int snap            = 32; /* snap pixel */
+static const int    swallowfloating = 0;  /* 1 means swallow floating windows by default */
+static unsigned int gappih          = 10; /* horiz inner gap between windows */
+static unsigned int gappiv          = 10; /* vert inner gap between windows */
+static unsigned int gappoh          = 10; /* horiz outer gap between windows and screen edge */
+static unsigned int gappov          = 10; /* vert outer gap between windows and screen edge */
+static int          smartgaps       = 0;  /* 1 means no outer gap when there is only one window */
+static int          showbar         = 1;  /* 0 means no bar */
+static int          topbar          = 1;  /* 0 means bottom bar */
+static char         main_font[]     = "Source Code Pro:size=12";
+static char         second_font[]   = "JoyPixels:pixelsize=14:antialias=true:autohint=true";
+static char*  fonts[]               = {
+	main_font, second_font
 };
-static const char dmenufont[]      = "Source Code Pro:size=12";
-static const char col_gray1[]      = "#222222"; // tags and status bar font color
-static const char col_gray2[]      = "#444444"; // border of clients ?
-static const char col_gray3[]      = "#444444"; // tags and status bar background color
-static const char col_gray4[]      = "#004466"; // selected tag and window title font color
-static const char dmenu_nfg[]      = "#aaaaaa"; // selected tag and window title font color
-static const char dmenu_sfg[]      = "#eeeeee"; // selected tag and window title font color
-static const char col_cyan[]       = "#005577";
-static const unsigned int baralpha    = 0x90;   // top bar opacity
-static const unsigned int borderalpha = OPAQUE;
-static const char *colors[][3]        = {
+static char dmenufont[]       = "Source Code Pro:size=12";
+static char normbgcolor[]     = "#222222"; // tags and status bar font color
+static char normfgcolor[]     = "#444444"; // border of clients ?
+static char normbordercolor[] = "#444444"; // tags and status bar background color
+static char selfgcolor[]      = "#004466"; // selected tag and window title font color
+static char selbgcolor[]      = "#aaaaaa"; // selected tag and window title font color
+static char selbordercolor[]  = "#eeeeee"; // selected tag and window title font color
+static char dmenusfg[]        = "#eeeeee"; // selected tag and window title font color
+static char dmenunfg[]        = "#eeeeee"; // selected tag and window title font color
+
+static unsigned int baralpha    = 0x90;   // top bar opacity
+static unsigned int borderalpha = 0x100;
+static unsigned int fontalpha   = OPAQUE;
+
+static char* colors[][3] = {
 	/*               fg         bg         border   */
-	[SchemeNorm] = { col_gray3, col_gray1, col_gray2 },
-	[SchemeSel]  = { col_gray4, col_cyan,  col_cyan  },
+	[SchemeNorm] = { normfgcolor, normbgcolor, normbordercolor },
+	[SchemeSel]  = { selfgcolor,  selbgcolor,  selbordercolor  },
 };
-static const unsigned int alphas[][3] = {
+static unsigned int* alphas[][3] = {
 	/*               fg      bg        border     */
-	[SchemeNorm] = { OPAQUE, baralpha, borderalpha },
-	[SchemeSel]  = { OPAQUE, baralpha, borderalpha },
+	[SchemeNorm] = { &fontalpha, &baralpha, &borderalpha },
+	[SchemeSel]  = { &fontalpha, &baralpha, &borderalpha },
 };
 
 /* tagging */
@@ -53,9 +58,9 @@ static const Rule rules[] = {
 };
 
 /* layout(s) */
-static const float mfact     = 0.55; /* factor of master area size [0.05..0.95] */
-static const int nmaster     = 1;    /* number of clients in master area */
-static const int resizehints = 1;    /* 1 means respect size hints in tiled resizals */
+static float mfact       = 0.55; /* factor of master area size [0.05..0.95] */
+static int   nmaster     = 1;    /* number of clients in master area */
+static int   resizehints = 1;    /* 1 means respect size hints in tiled resizals */
 
 /* key definitions */
 #define MODKEY Mod4Mask
@@ -80,9 +85,36 @@ static const int resizehints = 1;    /* 1 means respect size hints in tiled resi
 #define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
 
 /* commands */
-static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */
-static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", col_gray1, "-nf", dmenu_nfg, "-sb", col_cyan, "-sf", dmenu_sfg, NULL };
-static const char *termcmd[]  = { "st", NULL };
+static char        dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */
+static const char* dmenucmd[]  = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", normbgcolor, "-nf", dmenunfg, "-sb", selbordercolor, "-sf", dmenusfg, NULL };
+static const char* termcmd[]   = { "st", NULL };
+
+/*
+ * Xresources preferences to load at startup
+ */
+ResourcePref resources[] = {
+	{ "normbgcolor",     STRING,  &normbgcolor     },
+	{ "normfgcolor",     STRING,  &normfgcolor     },
+	{ "normbordercolor", STRING,  &normbordercolor },
+	{ "selbgcolor",      STRING,  &selbgcolor      },
+	{ "selfgcolor",      STRING,  &selfgcolor      },
+	{ "selbordercolor",  STRING,  &selbordercolor  },
+	{ "dmenusfg",        STRING,  &dmenusfg        },
+	{ "dmenunfg",        STRING,  &dmenunfg        },
+
+	{ "borderpx",        INTEGER, &borderpx        },
+	{ "snap",          	 INTEGER, &snap            },
+	{ "showbar",         INTEGER, &showbar         },
+	{ "topbar",          INTEGER, &topbar          },
+	{ "nmaster",         INTEGER, &nmaster         },
+	{ "resizehints",     INTEGER, &resizehints     },
+	{ "mfact",           FLOAT,   &mfact           },
+
+	{ "gappih",          INTEGER, &gappih          },
+	{ "gappiv",          INTEGER, &gappiv          },
+	{ "gappoh",          INTEGER, &gappoh          },
+	{ "gappov",          INTEGER, &gappov          },
+};
 
 static const Layout layouts[] = {
 	/* symbol     arrange function */
@@ -139,6 +171,7 @@ static Key keys[] = {
 
 	{ MODKEY,                       XK_u,      togglegaps,  {0}        },   // toggle gaps around clients
 	{ MODKEY|ShiftMask,             XK_u,      defaultgaps, {0}        },   // reset clients graps
+	/* { MODKEY|ShiftMask,             XK_r,      load_xresources, {0}    },   // update xrsources */
 
 	{ MODKEY|ControlMask,           XK_k,      incrgaps,    {.i = +3 } },   // increase gaps between clients
 	{ MODKEY|ControlMask,           XK_j,      incrgaps,    {.i = -3 } },   // decrease gaps between clients
