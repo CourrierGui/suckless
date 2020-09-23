@@ -15,15 +15,15 @@ static const int showbar           = 1;  /* 0 means no bar */
 static const int topbar            = 1;  /* 0 means bottom bar */
 static const char *fonts[]         = {
 	"Source Code Pro:size=12",
-	"JoyPixels:pixelsize=12:antialias=true:autohint=true"
+	"JoyPixels:pixelsize=14:antialias=true:autohint=true"
 };
 static const char dmenufont[]      = "Source Code Pro:size=12";
-static const char col_gray1[]      = "#222222";
-static const char col_gray2[]      = "#444444";
-static const char col_gray3[]      = "#bbbbbb";
-static const char col_gray4[]      = "#eeeeee";
+static const char col_gray1[]      = "#222222"; // tags and status bar font color
+static const char col_gray2[]      = "#444444"; // border of clients ?
+static const char col_gray3[]      = "#444444"; // tags and status bar background color
+static const char col_gray4[]      = "#004466"; // selected tag and window title font color
 static const char col_cyan[]       = "#005577";
-static const unsigned int baralpha    = 0x70;
+static const unsigned int baralpha    = 0x90;   // top bar opacity
 static const unsigned int borderalpha = OPAQUE;
 static const char *colors[][3]        = {
 	/*               fg         bg         border   */
@@ -41,8 +41,8 @@ static const char *tags[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
 
 static const Rule rules[] = {
 	/* xprop(1):
-	 *	WM_CLASS(STRING) = instance, class
-	 *	WM_NAME(STRING) = title
+	 * WM_CLASS(STRING) = instance, class
+	 * WM_NAME(STRING) = title
 	 */
 	/* class     instance  title           tags mask  isfloating  isterminal  noswallow  monitor */
 	{ "St",      NULL,     NULL,           0,         0,          1,           0,        -1 },
@@ -189,9 +189,9 @@ static Button buttons[] = {
 	{ ClkStatusText,        0,              Button5,        sigdwmblocks,   {.i = 5} },
 	{ ClkStatusText,        ShiftMask,      Button1,        sigdwmblocks,   {.i = 6} },
 
-	{ ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} }, // drag the client with the mouse
-	{ ClkClientWin,         MODKEY,         Button2,        togglefloating, {0} }, // toggle floating for the clicked client
-	{ ClkClientWin,         MODKEY,         Button3,        resizemouse,    {0} }, // resize the window
+	{ ClkClientWin,         MODKEY,           Button1,        movemouse,      {0} }, // drag the client with the mouse
+	{ ClkClientWin,         MODKEY,           Button2,        togglefloating, {0} }, // toggle floating for the clicked client
+	{ ClkClientWin,         MODKEY|ShiftMask, Button1,        resizemouse,    {0} }, // resize the window
 
 	{ ClkTagBar,            0,              Button1,        view,           {0} }, // display corresponding tag
 	{ ClkTagBar,            0,              Button3,        toggleview,     {0} }, // toggle the display of the corresponding tag
