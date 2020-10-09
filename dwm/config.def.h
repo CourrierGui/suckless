@@ -146,6 +146,8 @@ static Key keys[] = {
 	{ MODKEY,           XK_m,      setlayout,      {.v = &layouts[2]} }, // monocle layout
 	{ MODKEY,           XK_space,  setlayout,      {0} },                // toggle between the last 2 layouts
 	{ MODKEY|ShiftMask, XK_space,  togglefloating, {0} },                // toggle current client between floating or not
+	{ MODKEY|ShiftMask, XK_f,      togglefullscreen,  {0} },
+
 
 	{ MODKEY,             XK_agrave, view, {.ui = ~0 } }, // display all tags: all the clients in the screen
 	{ MODKEY|ShiftMask,   XK_agrave, tag,  {.ui = ~0 } }, // put the client in all the tags
