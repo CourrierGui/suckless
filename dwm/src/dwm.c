@@ -44,8 +44,9 @@
 #include <X11/Xlib-xcb.h>
 #include <xcb/res.h>
 
-#include "drw.h"
-#include "util.h"
+#include "../include/drw.h"
+#include "../include/util.h"
+#include "../config.h"
 
 /* macros */
 #define BUTTONMASK              (ButtonPressMask|ButtonReleaseMask)
@@ -342,7 +343,7 @@ static Colormap cmap;
 static xcb_connection_t *xcon;
 
 /* configuration, allows nested code to access above variables */
-#include "config.h"
+#include "../include/config.def.h"
 
 /* compile-time check if all tags fit into an unsigned int bit array. */
 struct NumTags { char limitexceeded[LENGTH(tags) > 31 ? -1 : 1]; };
@@ -2230,7 +2231,7 @@ void updatesizehints(Client *c) {
 
 void updatestatus(void) {
   if (!gettextprop(root, XA_WM_NAME, rawstext, sizeof(rawstext)))
-    strcpy(stext, "dwm-"VERSION);
+    strcpy(stext, "dwm-"PACKAGE_VERSION);
   else
     copyvalidchars(stext, rawstext);
   drawbar(selmon);
@@ -2553,7 +2554,7 @@ void load_xresources(void) {
 
 int main(int argc, char *argv[]) {
   if (argc == 2 && !strcmp("-v", argv[1]))
-    die("dwm-"VERSION);
+    die("dwm-"PACKAGE_VERSION);
   else if (argc != 1)
     die("usage: dwm [-v]");
   if (!setlocale(LC_CTYPE, "") || !XSupportsLocale())
