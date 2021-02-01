@@ -13,6 +13,8 @@ static unsigned int gappov          = 10; /* vert outer gap between windows and 
 static int          smartgaps       = 0;  /* 1 means no outer gap when there is only one window */
 static int          showbar         = 1;  /* 0 means no bar */
 static int          topbar          = 1;  /* 0 means bottom bar */
+static const int    vertpad         = 10; /* vertical padding of bar */
+static const int    sidepad         = 10; /* horizontal padding of bar */
 static char         main_font[]     = "Source Code Pro:size=12";
 static char         second_font[]   = "JoyPixels:pixelsize=14:antialias=true:autohint=true";
 static char*  fonts[]               = {
@@ -44,7 +46,12 @@ static unsigned int* alphas[][3] = {
 };
 
 /* tagging */
-static const char *tags[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
+static const char* tags[] = {
+  "\u2160", "\u2161", "\u2162",
+  "\u2163", "\u2164", "\u2165",
+  "\u2166", "\u2167", "\u2168",
+};
+/* static const char *tags[] = { "\uf120", "\uf7ae", "\uf121", "\uf04b", "\ue62e", "\uf251", "\ue727", "\uf537", "\uf684" }; */
 
 static const Rule rules[] = {
   /* xprop(1):
