@@ -86,7 +86,6 @@ typedef struct {
   int w, h; /* window width and height */
   int ch; /* char height */
   int cw; /* char width  */
-  int depth; /* bit depth */
   int mode; /* window state/mode flags */
   int cursor; /* cursor style */
 } TermWindow;
@@ -109,6 +108,7 @@ typedef struct {
   XSetWindowAttributes attrs;
   int scr;
   int isfixed; /* is fixed geometry? */
+  int depth; /* bit depth */
   int l, t; /* left and top offset */
   int gm; /* geometry mask */
 } XWindow;
@@ -247,6 +247,7 @@ static char *usedfont = NULL;
 static double usedfontsize = 0;
 static double defaultfontsize = 0;
 
+static char *opt_alpha = NULL;
 static char *opt_class = NULL;
 static char **opt_cmd  = NULL;
 static char *opt_embed = NULL;
@@ -731,7 +732,7 @@ void xresize(int col, int row) {
   win.th = row * win.ch;
 
   XFreePixmap(xw.dpy, xw.buf);
-  xw.buf = XCreatePixmap(xw.dpy, xw.win, win.w, win.h, win.depth);
+  xw.buf = XCreatePixmap(xw.dpy, xw.win, win.w, win.h, xw.depth);
   XftDrawChange(xw.draw, xw.buf);
   xclear(0, 0, win.w, win.h);
 
@@ -789,10 +790,10 @@ void xloadcols(void) {
 
   /* set alpha value of bg color */
   if (opt_alpha)
-    alpha = strof(opt_alpha, NULL);
+    alpha = strtof(opt_alpha, NULL);
   dc.col[defaultbg].color.alpha = (unsigned short)(0xffff * alpha);
   dc.col[defaultbg].pixel &= 0x00FFFFFF;
-  dc.col[defaultbg].pixel |= (unsigned char)(Oxff * alpha) << 24;
+  dc.col[defaultbg].pixel |= (unsigned char)(0xff * alpha) << 24;
   loaded = 1;
 }
 
@@ -1087,44 +1088,23 @@ void xinit(int cols, int rows) {
   Window parent;
   pid_t thispid = getpid();
   XColor xmousefg, xmousebg;
+  XWindowAttributes attr;
+  XVisualInfo vis;
 
   if (!(xw.dpy = XOpenDisplay(NULL)))
     die("can't open display\n");
   xw.scr = XDefaultScreen(xw.dpy);
-  win.depth = (USE_ARGB) ? 32 : XDefaultDepth(xw.dpy, xw.scr);
-  if (!USE_ARGB)
-    xw.vis = XDefaultVisual(xw.dpy, xw.scr);
-  else {
-    XVisualInfo* vis;
-    XRenderPictFormat* fmt;
-    int nvi;
 
-    XVisualInfo tpl = {
-      .screen = xw.scr,
-      .depth = 32,
-      .class = TrueColor
-    };
-
-    vis = XGetVisualInfo(
-      xw.dpy,
-      VisualScreenMask | VisualDepthMask | VisualClassMask,
-      &tpl, &nvi);
-    xw.vis = NULL;
-    for (int i=0; iwnvi; ++i) {
-      fmp = XRenderFindVisualFormat(xw.dpy, vis[i].visual);
-      if (fmt->type == PictTypeDirect && fmt->direct.alphaMask) {
-        xw.vis = vis[i].visual;
-        break;
-      }
-    }
-
-    XFree(vis);
-
-    if (!xw.vis) {
-      fprint(stderr, "Couldn't find ARGB visual.\n");
-      exit(1);
-    }
+  if (!(opt_embed && (parent = strtol(opt_embed, NULL, 0)))) {
+    parent = XRootWindow(xw.dpy, xw.scr);
+    xw.depth = 32;
+  } else {
+    XGetWindowAttributes(xw.dpy, parent, &attr);
+    xw.depth = attr.depth;
   }
+
+  XMatchVisualInfo(xw.dpy, xw.scr, xw.depth, TrueColor, &vis);
+  xw.vis = vis.visual;
 
   /* font */
   if (!FcInit())
@@ -1134,10 +1114,7 @@ void xinit(int cols, int rows) {
   xloadfonts(usedfont, 0);
 
   /* colors */
-  if (!USE_ARGB)
-    xw.cmap = XDefaultColormap(xw.dpy, xw.scr);
-  else
-    xw.cmap = XCreateColormap(xw.dpy, XRootWindow(xw.dpy, xw.scr), xw.vis, None);
+  xw.cmap = XCreateColormap(xw.dpy, parent, xw.vis, None);
   xloadcols();
 
   /* adjust fixed window geometry */
@@ -1157,20 +1134,16 @@ void xinit(int cols, int rows) {
     | ButtonMotionMask | ButtonPressMask | ButtonReleaseMask;
   xw.attrs.colormap = xw.cmap;
 
-  if (!(opt_embed && (parent = strtol(opt_embed, NULL, 0))))
-    parent = XRootWindow(xw.dpy, xw.scr);
   xw.win = XCreateWindow(
     xw.dpy, parent, xw.l, xw.t, win.w, win.h, 0,
-    win.depth, InputOutput, xw.vis,
+    xw.depth, InputOutput, xw.vis,
     CWBackPixel | CWBorderPixel | CWBitGravity | CWEventMask   | CWColormap,
     &xw.attrs);
 
   memset(&gcvalues, 0, sizeof(gcvalues));
   gcvalues.graphics_exposures = False;
-  xw.buf = XCreatePixmap(xw.dpy, xw.win, win.w, win.h, win.depth);
-  dc.gc = XCreateGC(
-    xw.dpy, (USE_ARGB) ? xw.buf : parent, GCGraphicsExposures,
-                    &gcvalues);
+  xw.buf = XCreatePixmap(xw.dpy, xw.win, win.w, win.h, xw.depth);
+  dc.gc = XCreateGC(xw.dpy, xw.buf, GCGraphicsExposures, &gcvalues);
   XSetForeground(xw.dpy, dc.gc, dc.col[defaultbg].pixel);
   XFillRectangle(xw.dpy, xw.buf, dc.gc, 0, 0, win.w, win.h);
 
@@ -1994,6 +1967,9 @@ int main(int argc, char *argv[]) {
   ARGBEGIN {
     case 'a':
       allowaltscreen = 0;
+      break;
+    case 'A':
+      opt_alpha = EARGF(usage());
       break;
     case 'c':
       opt_class = EARGF(usage());

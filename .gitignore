@@ -21,7 +21,6 @@ depcomp
 */config.h.in
 */config.h.in~
 */configure
-*/configure.ac
 install-sh
 ltmain.sh
 missing
