@@ -164,25 +164,25 @@ static Key keys[] = {
   { MODKEY,           XK_w,      spawn,          SHCMD("$BROWSER") },
   { MODKEY,           XK_c,      spawn,          SHCMD("st -e calcurse") },
 
-  TAGKEYS(XK_quotedbl,       0), // super + ("|«|»|(|)|@|+|-|/|*|=|%) display corresponding tag
-  TAGKEYS(XK_guillemotleft,  1), // if you add one of the following:
-  TAGKEYS(XK_guillemotright, 2), // * shift: move client to corresponding tag
-  TAGKEYS(XK_parenleft,      3), // * control: add corresponding tag to display
-  TAGKEYS(XK_parenright,     4), // * control+shift: add or remove client from corresponding tag
-  TAGKEYS(XK_at,             5),
-  TAGKEYS(XK_plus,           6),
-  TAGKEYS(XK_minus,          7),
-  TAGKEYS(XK_asterisk,       8),
+  /* TAGKEYS(XK_quotedbl,       0), // super + ("|«|»|(|)|@|+|-|/|*|=|%) display corresponding tag */
+  /* TAGKEYS(XK_guillemotleft,  1), // if you add one of the following: */
+  /* TAGKEYS(XK_guillemotright, 2), // * shift: move client to corresponding tag */
+  /* TAGKEYS(XK_parenleft,      3), // * control: add corresponding tag to display */
+  /* TAGKEYS(XK_parenright,     4), // * control+shift: add or remove client from corresponding tag */
+  /* TAGKEYS(XK_at,             5), */
+  /* TAGKEYS(XK_plus,           6), */
+  /* TAGKEYS(XK_minus,          7), */
+  /* TAGKEYS(XK_asterisk,       8), */
 
-  /* TAGKEYS(XK_ampersand,  0), // super + (&|é|"|'|(|-|è|_|ç) display corresponding tag */
-  /* TAGKEYS(XK_eacute,     1), // if you add one of the following: */
-  /* TAGKEYS(XK_quotedbl,   2), // * shift: move client to corresponding tag */
-  /* TAGKEYS(XK_quoteright, 3), // * control: add corresponding tag to display */
-  /* TAGKEYS(XK_parenleft,  4), // * control+shift: add or remove client from corresponding tag */
-  /* TAGKEYS(XK_minus,      5), */
-  /* TAGKEYS(XK_egrave,     6), */
-  /* TAGKEYS(XK_underscore, 7), */
-  /* TAGKEYS(XK_ccedilla,   8), */
+  TAGKEYS(XK_ampersand,  0), // super + (&|é|"|'|(|-|è|_|ç) display corresponding tag
+  TAGKEYS(XK_eacute,     1), // if you add one of the following:
+  TAGKEYS(XK_quotedbl,   2), // * shift: move client to corresponding tag
+  TAGKEYS(XK_quoteright, 3), // * control: add corresponding tag to display
+  TAGKEYS(XK_parenleft,  4), // * control+shift: add or remove client from corresponding tag
+  TAGKEYS(XK_minus,      5),
+  TAGKEYS(XK_egrave,     6),
+  TAGKEYS(XK_underscore, 7),
+  TAGKEYS(XK_ccedilla,   8),
 
   { MODKEY,                       XK_b,      togglebar,   {0} },          // toggle the top bar
   { MODKEY,                       XK_l,      setmfact,    {.f = +0.05} }, // increase master size

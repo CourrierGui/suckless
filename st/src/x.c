@@ -50,6 +50,7 @@ typedef struct {
 #define XK_ANY_MOD    UINT_MAX
 #define XK_NO_MOD     0
 #define XK_SWITCH_MOD (1<<13)
+#define OPAQUE 0xff
 
 /* function definitions used in config.h */
 static void clipcopy(const Arg *);
@@ -85,6 +86,7 @@ typedef struct {
   int w, h; /* window width and height */
   int ch; /* char height */
   int cw; /* char width  */
+  int depth; /* bit depth */
   int mode; /* window state/mode flags */
   int cursor; /* cursor style */
 } TermWindow;
@@ -729,8 +731,7 @@ void xresize(int col, int row) {
   win.th = row * win.ch;
 
   XFreePixmap(xw.dpy, xw.buf);
-  xw.buf = XCreatePixmap(xw.dpy, xw.win, win.w, win.h,
-                         DefaultDepth(xw.dpy, xw.scr));
+  xw.buf = XCreatePixmap(xw.dpy, xw.win, win.w, win.h, win.depth);
   XftDrawChange(xw.draw, xw.buf);
   xclear(0, 0, win.w, win.h);
 
@@ -764,9 +765,7 @@ int xloadcolor(int i, const char *name, Color *ncolor) {
   return XftColorAllocName(xw.dpy, xw.vis, xw.cmap, name, ncolor);
 }
 
-  void
-xloadcols(void)
-{
+void xloadcols(void) {
   int i;
   static int loaded;
   Color *cp;
@@ -779,19 +778,25 @@ xloadcols(void)
     dc.col = xmalloc(dc.collen * sizeof(Color));
   }
 
-  for (i = 0; i < dc.collen; i++)
+  for (i = 0; i < dc.collen; i++) {
     if (!xloadcolor(i, NULL, &dc.col[i])) {
       if (colorname[i])
         die("could not allocate color '%s'\n", colorname[i]);
       else
         die("could not allocate color %d\n", i);
     }
+  }
+
+  /* set alpha value of bg color */
+  if (opt_alpha)
+    alpha = strof(opt_alpha, NULL);
+  dc.col[defaultbg].color.alpha = (unsigned short)(0xffff * alpha);
+  dc.col[defaultbg].pixel &= 0x00FFFFFF;
+  dc.col[defaultbg].pixel |= (unsigned char)(Oxff * alpha) << 24;
   loaded = 1;
 }
 
-  int
-xsetcolorname(int x, const char *name)
-{
+int xsetcolorname(int x, const char *name) {
   Color ncolor;
 
   if (!BETWEEN(x, 0, dc.collen))
@@ -809,17 +814,14 @@ xsetcolorname(int x, const char *name)
 /*
  * Absolute coordinates.
  */
-  void
-xclear(int x1, int y1, int x2, int y2)
-{
-  XftDrawRect(xw.draw,
-              &dc.col[IS_SET(MODE_REVERSE)? defaultfg : defaultbg],
-              x1, y1, x2-x1, y2-y1);
+void xclear(int x1, int y1, int x2, int y2) {
+  XftDrawRect(
+    xw.draw,
+    &dc.col[IS_SET(MODE_REVERSE)? defaultfg : defaultbg],
+    x1, y1, x2-x1, y2-y1);
 }
 
-  void
-xhints(void)
-{
+void xhints(void) {
   XClassHint class = {opt_name ? opt_name : termname,
     opt_class ? opt_class : termname};
   XWMHints wm = {.flags = InputHint, .input = 1};
@@ -853,9 +855,7 @@ xhints(void)
   XFree(sizeh);
 }
 
-  int
-xgeommasktogravity(int mask)
-{
+int xgeommasktogravity(int mask) {
   switch (mask & (XNegative|YNegative)) {
     case 0:
       return NorthWestGravity;
@@ -868,9 +868,7 @@ xgeommasktogravity(int mask)
   return SouthEastGravity;
 }
 
-  int
-xloadfont(Font *f, FcPattern *pattern)
-{
+int xloadfont(Font *f, FcPattern *pattern) {
   FcPattern *configured;
   FcPattern *match;
   FcResult result;
@@ -1093,7 +1091,40 @@ void xinit(int cols, int rows) {
   if (!(xw.dpy = XOpenDisplay(NULL)))
     die("can't open display\n");
   xw.scr = XDefaultScreen(xw.dpy);
-  xw.vis = XDefaultVisual(xw.dpy, xw.scr);
+  win.depth = (USE_ARGB) ? 32 : XDefaultDepth(xw.dpy, xw.scr);
+  if (!USE_ARGB)
+    xw.vis = XDefaultVisual(xw.dpy, xw.scr);
+  else {
+    XVisualInfo* vis;
+    XRenderPictFormat* fmt;
+    int nvi;
+
+    XVisualInfo tpl = {
+      .screen = xw.scr,
+      .depth = 32,
+      .class = TrueColor
+    };
+
+    vis = XGetVisualInfo(
+      xw.dpy,
+      VisualScreenMask | VisualDepthMask | VisualClassMask,
+      &tpl, &nvi);
+    xw.vis = NULL;
+    for (int i=0; iwnvi; ++i) {
+      fmp = XRenderFindVisualFormat(xw.dpy, vis[i].visual);
+      if (fmt->type == PictTypeDirect && fmt->direct.alphaMask) {
+        xw.vis = vis[i].visual;
+        break;
+      }
+    }
+
+    XFree(vis);
+
+    if (!xw.vis) {
+      fprint(stderr, "Couldn't find ARGB visual.\n");
+      exit(1);
+    }
+  }
 
   /* font */
   if (!FcInit())
@@ -1103,7 +1134,10 @@ void xinit(int cols, int rows) {
   xloadfonts(usedfont, 0);
 
   /* colors */
-  xw.cmap = XDefaultColormap(xw.dpy, xw.scr);
+  if (!USE_ARGB)
+    xw.cmap = XDefaultColormap(xw.dpy, xw.scr);
+  else
+    xw.cmap = XCreateColormap(xw.dpy, XRootWindow(xw.dpy, xw.scr), xw.vis, None);
   xloadcols();
 
   /* adjust fixed window geometry */
@@ -1125,17 +1159,18 @@ void xinit(int cols, int rows) {
 
   if (!(opt_embed && (parent = strtol(opt_embed, NULL, 0))))
     parent = XRootWindow(xw.dpy, xw.scr);
-  xw.win = XCreateWindow(xw.dpy, parent, xw.l, xw.t,
-                         win.w, win.h, 0, XDefaultDepth(xw.dpy, xw.scr), InputOutput,
-                         xw.vis, CWBackPixel | CWBorderPixel | CWBitGravity
-                         | CWEventMask | CWColormap, &xw.attrs);
+  xw.win = XCreateWindow(
+    xw.dpy, parent, xw.l, xw.t, win.w, win.h, 0,
+    win.depth, InputOutput, xw.vis,
+    CWBackPixel | CWBorderPixel | CWBitGravity | CWEventMask   | CWColormap,
+    &xw.attrs);
 
   memset(&gcvalues, 0, sizeof(gcvalues));
   gcvalues.graphics_exposures = False;
-  dc.gc = XCreateGC(xw.dpy, parent, GCGraphicsExposures,
+  xw.buf = XCreatePixmap(xw.dpy, xw.win, win.w, win.h, win.depth);
+  dc.gc = XCreateGC(
+    xw.dpy, (USE_ARGB) ? xw.buf : parent, GCGraphicsExposures,
                     &gcvalues);
-  xw.buf = XCreatePixmap(xw.dpy, xw.win, win.w, win.h,
-                         DefaultDepth(xw.dpy, xw.scr));
   XSetForeground(xw.dpy, dc.gc, dc.col[defaultbg].pixel);
   XFillRectangle(xw.dpy, xw.buf, dc.gc, 0, 0, win.w, win.h);
 
@@ -1940,9 +1975,7 @@ void run(void) {
   }
 }
 
-  void
-usage(void)
-{
+void usage(void) {
   die("usage: %s [-aiv] [-c class] [-f font] [-g geometry]"
       " [-n name] [-o file]\n"
       "          [-T title] [-t title] [-w windowid]"
@@ -1953,9 +1986,7 @@ usage(void)
       " [stty_args ...]\n", argv0, argv0);
 }
 
-  int
-main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
   xw.l = xw.t = 0;
   xw.isfixed = False;
   xsetcursor(cursorshape);
@@ -1975,8 +2006,9 @@ main(int argc, char *argv[])
       opt_font = EARGF(usage());
       break;
     case 'g':
-      xw.gm = XParseGeometry(EARGF(usage()),
-                             &xw.l, &xw.t, &cols, &rows);
+      xw.gm = XParseGeometry(
+        EARGF(usage()),
+        &xw.l, &xw.t, &cols, &rows);
       break;
     case 'i':
       xw.isfixed = 1;
