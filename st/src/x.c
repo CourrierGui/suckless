@@ -260,9 +260,7 @@ static char *opt_title = NULL;
 
 static int oldbutton = 3; /* button event on startup: 3 = release */
 
-  void
-clipcopy(const Arg *dummy)
-{
+void clipcopy(const Arg *dummy) {
   Atom clipboard;
 
   free(xsel.clipboard);
@@ -275,9 +273,7 @@ clipcopy(const Arg *dummy)
   }
 }
 
-  void
-clippaste(const Arg *dummy)
-{
+void clippaste(const Arg *dummy) {
   Atom clipboard;
 
   clipboard = XInternAtom(xw.dpy, "CLIPBOARD", 0);
@@ -335,9 +331,7 @@ int evrow(XEvent *e) {
   return y / win.ch;
 }
 
-  void
-mousesel(XEvent *e, int done)
-{
+void mousesel(XEvent *e, int done) {
   int type, seltype = SEL_REGULAR;
   uint state = e->xbutton.state & ~(Button1Mask | forcemousemod);
 
@@ -352,9 +346,7 @@ mousesel(XEvent *e, int done)
     setsel(getsel(), e->xbutton.time);
 }
 
-  void
-mousereport(XEvent *e)
-{
+void mousereport(XEvent *e) {
   int len, x = evcol(e), y = evrow(e),
       button = e->xbutton.button, state = e->xbutton.state;
   char buf[40];
@@ -415,9 +407,7 @@ mousereport(XEvent *e)
   ttywrite(buf, len, 0);
 }
 
-  uint
-buttonmask(uint button)
-{
+uint buttonmask(uint button) {
   return button == Button1 ? Button1Mask
     : button == Button2 ? Button2Mask
     : button == Button3 ? Button3Mask
@@ -426,9 +416,7 @@ buttonmask(uint button)
     : 0;
 }
 
-  int
-mouseaction(XEvent *e, uint release)
-{
+int mouseaction(XEvent *e, uint release) {
   MouseShortcut *ms;
 
   /* ignore Button<N>mask for Button<N> - it's set on release */
@@ -447,9 +435,7 @@ mouseaction(XEvent *e, uint release)
   return 0;
 }
 
-  void
-bpress(XEvent *e)
-{
+void bpress(XEvent *e) {
   struct timespec now;
   int snap;
 
@@ -481,9 +467,7 @@ bpress(XEvent *e)
   }
 }
 
-  void
-propnotify(XEvent *e)
-{
+void propnotify(XEvent *e) {
   XPropertyEvent *xpev;
   Atom clipboard = XInternAtom(xw.dpy, "CLIPBOARD", 0);
 
@@ -495,9 +479,7 @@ propnotify(XEvent *e)
   }
 }
 
-  void
-selnotify(XEvent *e)
-{
+void selnotify(XEvent *e) {
   ulong nitems, ofs, rem;
   int format;
   uchar *data, *last, *repl;
@@ -582,21 +564,15 @@ selnotify(XEvent *e)
   XDeleteProperty(xw.dpy, xw.win, (int)property);
 }
 
-  void
-xclipcopy(void)
-{
+void xclipcopy(void) {
   clipcopy(NULL);
 }
 
-  void
-selclear_(XEvent *e)
-{
+void selclear_(XEvent *e) {
   selclear();
 }
 
-  void
-selrequest(XEvent *e)
-{
+void selrequest(XEvent *e) {
   XSelectionRequestEvent *xsre;
   XSelectionEvent xev;
   Atom xa_targets, string, clipboard;
@@ -652,9 +628,7 @@ selrequest(XEvent *e)
     fprintf(stderr, "Error sending SelectionNotify event\n");
 }
 
-  void
-setsel(char *str, Time t)
-{
+void setsel(char *str, Time t) {
   if (!str)
     return;
 
@@ -666,15 +640,11 @@ setsel(char *str, Time t)
     selclear();
 }
 
-  void
-xsetsel(char *str)
-{
+void xsetsel(char *str) {
   setsel(str, CurrentTime);
 }
 
-  void
-brelease(XEvent *e)
-{
+void brelease(XEvent *e) {
   if (IS_SET(MODE_MOUSE) && !(e->xbutton.state & forcemousemod)) {
     mousereport(e);
     return;
@@ -1088,9 +1058,7 @@ void xunloadfonts(void) {
   xunloadfont(&dc.ibfont);
 }
 
-  int
-ximopen(Display *dpy)
-{
+int ximopen(Display *dpy) {
   XIMCallback imdestroy = { .client_data = NULL, .callback = ximdestroy };
   XICCallback icdestroy = { .client_data = NULL, .callback = xicdestroy };
 
@@ -1118,9 +1086,7 @@ ximopen(Display *dpy)
   return 1;
 }
 
-  void
-ximinstantiate(Display *dpy, XPointer client, XPointer call)
-{
+void ximinstantiate(Display *dpy, XPointer client, XPointer call) {
   if (ximopen(dpy))
     XUnregisterIMInstantiateCallback(xw.dpy, NULL, NULL, NULL,
                                      ximinstantiate, NULL);
@@ -1390,9 +1356,7 @@ int xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, i
   return numspecs;
 }
 
-  void
-xdrawglyphfontspecs(const XftGlyphFontSpec *specs, Glyph base, int len, int x, int y)
-{
+void xdrawglyphfontspecs(const XftGlyphFontSpec *specs, Glyph base, int len, int x, int y) {
   int charlen = len * ((base.mode & ATTR_WIDE) ? 2 : 1);
   int winx = borderpx + x * win.cw, winy = borderpx + y * win.ch,
       width = charlen * win.cw;
@@ -1525,9 +1489,7 @@ xdrawglyphfontspecs(const XftGlyphFontSpec *specs, Glyph base, int len, int x, i
   XftDrawSetClip(xw.draw, 0);
 }
 
-  void
-xdrawglyph(Glyph g, int x, int y)
-{
+void xdrawglyph(Glyph g, int x, int y) {
   int numspecs;
   XftGlyphFontSpec spec;
 
@@ -1535,9 +1497,7 @@ xdrawglyph(Glyph g, int x, int y)
   xdrawglyphfontspecs(&spec, g, numspecs, x, y);
 }
 
-  void
-xdrawcursor(int cx, int cy, Glyph g, int ox, int oy, Glyph og)
-{
+void xdrawcursor(int cx, int cy, Glyph g, int ox, int oy, Glyph og) {
   Color drawcol;
 
   /* remove the old cursor */
@@ -1621,18 +1581,14 @@ xdrawcursor(int cx, int cy, Glyph g, int ox, int oy, Glyph og)
   }
 }
 
-  void
-xsetenv(void)
-{
+void xsetenv(void) {
   char buf[sizeof(long) * 8 + 1];
 
   snprintf(buf, sizeof(buf), "%lu", xw.win);
   setenv("WINDOWID", buf, 1);
 }
 
-  void
-xsettitle(char *p)
-{
+void xsettitle(char *p) {
   XTextProperty prop;
   DEFAULT(p, opt_title);
 
@@ -1643,15 +1599,11 @@ xsettitle(char *p)
   XFree(prop.value);
 }
 
-  int
-xstartdraw(void)
-{
+int xstartdraw(void) {
   return IS_SET(MODE_VISIBLE);
 }
 
-  void
-xdrawline(Line line, int x1, int y1, int x2)
-{
+void xdrawline(Line line, int x1, int y1, int x2) {
   int i, x, ox, numspecs;
   Glyph base, new;
   XftGlyphFontSpec *specs = xw.specbuf;
@@ -1680,9 +1632,7 @@ xdrawline(Line line, int x1, int y1, int x2)
     xdrawglyphfontspecs(specs, base, i, ox, y1);
 }
 
-  void
-xfinishdraw(void)
-{
+void xfinishdraw(void) {
   XCopyArea(xw.dpy, xw.buf, xw.win, dc.gc, 0, 0, win.w,
             win.h, 0, 0);
   XSetForeground(xw.dpy, dc.gc,
@@ -1690,9 +1640,7 @@ xfinishdraw(void)
                  defaultfg : defaultbg].pixel);
 }
 
-  void
-xximspot(int x, int y)
-{
+void xximspot(int x, int y) {
   if (xw.ime.xic == NULL)
     return;
 
@@ -1702,54 +1650,40 @@ xximspot(int x, int y)
   XSetICValues(xw.ime.xic, XNPreeditAttributes, xw.ime.spotlist, NULL);
 }
 
-  void
-expose(XEvent *ev)
-{
+void expose(XEvent *ev) {
   redraw();
 }
 
-  void
-visibility(XEvent *ev)
-{
+void visibility(XEvent *ev) {
   XVisibilityEvent *e = &ev->xvisibility;
 
   MODBIT(win.mode, e->state != VisibilityFullyObscured, MODE_VISIBLE);
 }
 
-  void
-unmap(XEvent *ev)
-{
+void unmap(XEvent *ev) {
   win.mode &= ~MODE_VISIBLE;
 }
 
-  void
-xsetpointermotion(int set)
-{
+void xsetpointermotion(int set) {
   MODBIT(xw.attrs.event_mask, set, PointerMotionMask);
   XChangeWindowAttributes(xw.dpy, xw.win, CWEventMask, &xw.attrs);
 }
 
-  void
-xsetmode(int set, unsigned int flags)
-{
+void xsetmode(int set, unsigned int flags) {
   int mode = win.mode;
   MODBIT(win.mode, set, flags);
   if ((win.mode & MODE_REVERSE) != (mode & MODE_REVERSE))
     redraw();
 }
 
-  int
-xsetcursor(int cursor)
-{
+int xsetcursor(int cursor) {
   if (!BETWEEN(cursor, 0, 7)) /* 7: st extension */
     return 1;
   win.cursor = cursor;
   return 0;
 }
 
-  void
-xseturgency(int add)
-{
+void xseturgency(int add) {
   XWMHints *h = XGetWMHints(xw.dpy, xw.win);
 
   MODBIT(h->flags, add, XUrgencyHint);
@@ -1757,18 +1691,14 @@ xseturgency(int add)
   XFree(h);
 }
 
-  void
-xbell(void)
-{
+void xbell(void) {
   if (!(IS_SET(MODE_FOCUSED)))
     xseturgency(1);
   if (bellvolume)
     XkbBell(xw.dpy, xw.win, bellvolume, (Atom)NULL);
 }
 
-  void
-focus(XEvent *ev)
-{
+void focus(XEvent *ev) {
   XFocusChangeEvent *e = &ev->xfocus;
 
   if (e->mode == NotifyGrab)
@@ -1790,15 +1720,11 @@ focus(XEvent *ev)
   }
 }
 
-  int
-match(uint mask, uint state)
-{
+int match(uint mask, uint state) {
   return mask == XK_ANY_MOD || mask == (state & ~ignoremod);
 }
 
-  char*
-kmap(KeySym k, uint state)
-{
+char* kmap(KeySym k, uint state) {
   Key *kp;
   int i;
 
