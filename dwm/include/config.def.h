@@ -93,7 +93,10 @@ static int   resizehints = 1;    /* 1 means respect size hints in tiled resizals
 
 /* commands */
 static char        dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */
-static const char* dmenucmd[]  = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", normbgcolor, "-nf", dmenunfg, "-sb", selbordercolor, "-sf", dmenusfg, NULL };
+static const char* dmenucmd[]  = {
+  "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", normbgcolor, "-nf", dmenunfg, "-sb", selbordercolor, "-sf", dmenusfg,
+  "-x", "10", "-y", "10", NULL
+};
 static const char* termcmd[]   = { "st", NULL };
 
 /*
