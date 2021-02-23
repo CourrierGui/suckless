@@ -100,7 +100,7 @@ static void cleanup(void) {
   XCloseDisplay(dpy);
 }
 
-static char * cistrstr(const char *s, const char *sub) {
+static char* cistrstr(const char *s, const char *sub) {
   size_t len;
 
   for (len = strlen(sub); *s; s++)
@@ -261,9 +261,7 @@ static void insert(const char *str, ssize_t n) {
   match();
 }
 
-  static size_t
-nextrune(int inc)
-{
+static size_t nextrune(int inc) {
   ssize_t n;
 
   /* return location of next utf8 rune in the given direction (+1 or -1) */
@@ -665,72 +663,82 @@ static void usage(void) {
   exit(1);
 }
 
+static int arg_match(const char* lhs, const char* rhs) {
+  return !strcmp(lhs, rhs);
+}
+
+static void parse_args(int* argc, char** argv, int* fast) {
+  for (int i = 1; i < *argc; i++) {
+    /* these options take no arguments */
+    if (arg_match(argv[i], "-v")) {      /* prints version information */
+      puts("dmenu-"VERSION);
+      exit(0);
+    } else if (arg_match(argv[i], "-b")) { /* appears at the bottom of the screen */
+      topbar = 0;
+    } else if (arg_match(argv[i], "-f")) {   /* grabs keyboard before reading stdin */
+      *fast = 1;
+    } else if (arg_match(argv[i], "-i")) { /* case-insensitive item matching */
+      fstrncmp = strncasecmp;
+      fstrstr = cistrstr;
+    } else if (i + 1 == argc) {
+      usage();
+
+    /* these options take one argument */
+    } else if (arg_match(argv[i], "-l")) {   /* number of lines in vertical list */
+      lines = atoi(argv[++i]);
+    } else if (arg_match(argv[i], "-x")) { /* window x offset */
+      dmx = atoi(argv[++i]);
+    } else if (arg_match(argv[i], "-y")) { /* window y offset */
+      dmy = atoi(argv[++i]);
+    } else if (arg_match(argv[i], "-z")) { /* make dmenu this wide */
+      dmw = atoi(argv[++i]);
+    } else if (arg_match(argv[i], "-m")) {
+      mon = atoi(argv[++i]);
+    } else if (arg_match(argv[i], "-p")) {   /* adds prompt to left of input field */
+      prompt = argv[++i];
+    } else if (arg_match(argv[i], "-fn")) {  /* font or font set */
+      fonts[0] = argv[++i];
+    } else if (arg_match(argv[i], "-nb")) {  /* normal background color */
+      colors[SchemeNorm][ColBg] = argv[++i];
+    } else if (arg_match(argv[i], "-nf")) {  /* normal foreground color */
+      colors[SchemeNorm][ColFg] = argv[++i];
+    } else if (arg_match(argv[i], "-sb")) {  /* selected background color */
+      colors[SchemeSel][ColBg] = argv[++i];
+    } else if (arg_match(argv[i], "-sf")) {  /* selected foreground color */
+      colors[SchemeSel][ColFg] = argv[++i];
+    } else if (arg_match(argv[i], "-w")) {   /* embedding window id */
+      embed = argv[++i];
+    } else {
+      usage();
+    }
+  }
+}
+
 int main(int argc, char *argv[]) {
   XWindowAttributes wa;
   int i, fast = 0;
-
-  for (i = 1; i < argc; i++)
-    /* these options take no arguments */
-    if (!strcmp(argv[i], "-v")) {      /* prints version information */
-      puts("dmenu-"VERSION);
-      exit(0);
-    } else if (!strcmp(argv[i], "-b")) /* appears at the bottom of the screen */
-      topbar = 0;
-    else if (!strcmp(argv[i], "-f"))   /* grabs keyboard before reading stdin */
-      fast = 1;
-    else if (!strcmp(argv[i], "-i")) { /* case-insensitive item matching */
-      fstrncmp = strncasecmp;
-      fstrstr = cistrstr;
-    } else if (i + 1 == argc)
-      usage();
-  /* these options take one argument */
-    else if (!strcmp(argv[i], "-l"))   /* number of lines in vertical list */
-      lines = atoi(argv[++i]);
-    else if (!strcmp(argv[i], "-x")) /* window x offset */
-      dmx = atoi(argv[++i]);
-    else if (!strcmp(argv[i], "-y")) /* window y offset */
-      dmy = atoi(argv[++i]);
-    else if (!strcmp(argv[i], "-z")) /* make dmenu this wide */
-      dmw = atoi(argv[++i]);
-    else if (!strcmp(argv[i], "-m"))
-      mon = atoi(argv[++i]);
-    else if (!strcmp(argv[i], "-p"))   /* adds prompt to left of input field */
-      prompt = argv[++i];
-    else if (!strcmp(argv[i], "-fn"))  /* font or font set */
-      fonts[0] = argv[++i];
-    else if (!strcmp(argv[i], "-nb"))  /* normal background color */
-      colors[SchemeNorm][ColBg] = argv[++i];
-    else if (!strcmp(argv[i], "-nf"))  /* normal foreground color */
-      colors[SchemeNorm][ColFg] = argv[++i];
-    else if (!strcmp(argv[i], "-sb"))  /* selected background color */
-      colors[SchemeSel][ColBg] = argv[++i];
-    else if (!strcmp(argv[i], "-sf"))  /* selected foreground color */
-      colors[SchemeSel][ColFg] = argv[++i];
-    else if (!strcmp(argv[i], "-w"))   /* embedding window id */
-      embed = argv[++i];
-    else
-      usage();
+  parse_args(&argc, argv, &fast);
 
   if (!setlocale(LC_CTYPE, "") || !XSupportsLocale())
     fputs("warning: no locale support\n", stderr);
+
   if (!(dpy = XOpenDisplay(NULL)))
     die("cannot open display");
+
   screen = DefaultScreen(dpy);
   root = RootWindow(dpy, screen);
   if (!embed || !(parentwin = strtol(embed, NULL, 0)))
     parentwin = root;
+
   if (!XGetWindowAttributes(dpy, parentwin, &wa))
     die("could not get embedding window attributes: 0x%lx",
         parentwin);
+
   drw = drw_create(dpy, screen, root, wa.width, wa.height);
   if (!drw_fontset_create(drw, fonts, LENGTH(fonts)))
     die("no fonts could be loaded.");
-  lrpad = drw->fonts->h;
 
-#ifdef __OpenBSD__
-  if (pledge("stdio rpath", NULL) == -1)
-    die("pledge");
-#endif
+  lrpad = drw->fonts->h;
 
   if (fast && !isatty(0)) {
     grabkeyboard();
@@ -739,6 +747,7 @@ int main(int argc, char *argv[]) {
     readstdin();
     grabkeyboard();
   }
+
   setup();
   run();
 
