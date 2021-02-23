@@ -5,7 +5,7 @@ AM_INIT_AUTOMAKE([1.11 -Wall -Werror foreign])
 # LT_PREREQ([2.2])
 
 AC_CONFIG_MACRO_DIR([m4])
-AC_CONFIG_SUBDIRS([dwm st surf])
+AC_CONFIG_SUBDIRS([dwm st surf dmenu])
 AC_CONFIG_FILES([Makefile])
 
 AC_OUTPUT
