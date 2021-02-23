@@ -10,8 +10,9 @@ surf_SOURCES = \
 	include/surf.h \
 	src/common.c \
 	include/common.h \
-	include/config.h \
+	include/config.def.h \
 	include/arg.h
+
 surf_CPPFLAGS = \
 	-DWEBEXTDIR=\"$(prefix)/lib/surf\" \
 	-D_DEFAULT_SOURCE \
