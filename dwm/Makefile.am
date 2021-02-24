@@ -1,4 +1,4 @@
-AM_CFLAGS = $(Fonts_CFLAGS)
+AM_CPPFLAGS = $(Fonts_CFLAGS)
 AM_LIBS = $(Fonts_LIBS)
 
 bin_PROGRAMS = dwm transient

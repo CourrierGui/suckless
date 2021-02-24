@@ -1,15 +1,13 @@
-AM_CFLAGS = $(Fonts_CFLAGS)
+AM_CPPFLAGS = $(Fonts_CFLAGS)
 AM_LIBS = $(Fonts_LIBS)
 
-bin_PROGRAMS = dmenu stest
+bin_PROGRAMS = dmenu # stest
 
-dmenu_SOURCES = \
-	dmenu.c       \
-	config.def.h  \
-	arg.h         \
-	drw.c         \
-	drw.h         \
-	util.c        \
-	util.h
+dmenu_SOURCES =  \
+	apps/dmenu.cpp \
+	src/draw.cpp   \
+	src/draw.hpp   \
+	src/dmenu.cpp  \
+	src/dmenu.hpp
 
-stest_SOURCES = stest.c
+# stest_SOURCES = stest.c

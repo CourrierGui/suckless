@@ -1,19 +1,16 @@
 AC_PREREQ([2.71])
 AC_INIT([dmenu], [5.0])
-AC_CONFIG_SRCDIR([dmenu.c])
+AC_CONFIG_SRCDIR([apps/dmenu.cpp])
 AC_CONFIG_HEADERS([config.h])
 
 AM_INIT_AUTOMAKE([1.11 -Wall -Werror subdir-objects])
 
 # Checks for programs.
-AC_PROG_CC
+AC_PROG_CXX
 AC_PROG_INSTALL
 
 # Checks for libraries.
 PKG_CHECK_MODULES([Fonts], [freetype2])
-# AC_CHECK_LIB([Xrender], [XRenderFindVisualFormat])
-# AC_CHECK_LIB([xcb-res], [xcb_res_query_client_ids])
-# AC_CHECK_LIB([X11-xcb], [XGetXCBConnection])
 AC_CHECK_LIB([Xft], [XftDrawCreate])
 AC_CHECK_LIB([fontconfig], [FcDefaultSubstitute])
 AC_CHECK_LIB([X11], [XCloseDisplay])
