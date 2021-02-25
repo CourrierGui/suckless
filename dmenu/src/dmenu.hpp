@@ -21,11 +21,13 @@ namespace dmenu {
   class menu {
     public:
       static menu create(config& cfg);
+      void draw(const config& cfg);
 
     private:
       menu(Display* d, int screen, Window root, config& cfg, const suckless::rect& size);
 
       suckless::drawable _drawable;
+      std::vector<suckless::color_scheme> _schemes;
       Window             _menuWindow;
   };
 

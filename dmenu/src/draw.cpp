@@ -1,11 +1,12 @@
 #include "draw.hpp"
 #include <iostream>
+#include <sstream>
 
 namespace suckless {
 
   drawable::drawable(Display* display, int screen, Window root, rect size) :
     _size{size}, _display{display}, _screen{screen}, _root{root},
-    _drawable{}, _gc{}, _color{}, _fontset{}
+    _drawable{}, _gc{}, _colorscheme{}, _fontset{}
   {
     _drawable = XCreatePixmap(
       _display, _root,
@@ -23,14 +24,15 @@ namespace suckless {
     _root = d._root;
     _drawable = d._drawable;
     _gc = d._gc;
-    _color = d._color;
+    _colorscheme = d._colorscheme;
     _fontset = d._fontset;
     return *this;
   }
 
   drawable::drawable(const drawable& d) :
     _size{d._size}, _display{d._display}, _screen{d._screen}, _root{d._root},
-    _drawable{d._drawable}, _gc{d._gc}, _color{d._color}, _fontset{d._fontset} {  }
+    _drawable{d._drawable}, _gc{d._gc}, _colorscheme{d._colorscheme},
+    _fontset{d._fontset} {  }
 
   drawable::~drawable() {
     XFreePixmap(_display, _drawable);
@@ -75,36 +77,61 @@ namespace suckless {
 
   void drawable::setFontSet(const std::vector<std::string>& fonts) {
     for (const auto& f: fonts) {
-      _fontset.push_back(font(*this, f));
+      _fontset.emplace_back(*this, f);
     }
   }
 
-  void drawable::setColorScheme(const color_scheme& cs) {
-    _color = cs;
+  auto drawable::textWidth(const std::string& text) -> unsigned int {
+    return _fontset.front().getExtents(text).width;
   }
 
-  void drawable::draw_text(
+  void drawable::setColorScheme(const color_scheme& cs) {
+    _colorscheme = cs;
+  }
+
+  int drawable::draw_text(
     const position& p, const rect& size,
     unsigned char left_padding,
     const std::string& text, bool invert)
   {
+    auto* color = invert ? _colorscheme.foreground() : _colorscheme.background();
+    XSetForeground(_display, _gc, color->pixel);
+    XFillRectangle(_display, _drawable, _gc, p.x, p.y, size.width, size.height);
     XftDraw* d = XftDrawCreate(
       _display, _drawable,
       DefaultVisual(_display, _screen),
       DefaultColormap(_display, _screen));
 
+    auto x = p.x + left_padding;
+    auto w = size.width - left_padding;
+
+    auto font = _fontset.front();
+    auto text_with = font.getExtents(text).width;
+
+    auto y = p.y
+      + (size.height - font.height()) / 2
+      + font.xfont()->ascent;
+
     XftDrawStringUtf8(
-      d, _color[Color::Bg],
-      _fontset.front().xfont(), p.x, p.y,
+      d, _colorscheme.foreground(),
+      font.xfont(), x, y,
       (XftChar8*)text.c_str(), text.size());
+
+    x += text_with;
+    w -= text_with;
+
+    XftDrawDestroy(d);
+    return x;
   }
 
   void drawable::draw_rectangle(
     const position& p, const rect& size,
     bool filled, bool invert)
   {
-    XSetForeground(
-      _display, _gc, invert ? _color[Color::Bg]->pixel : _color[Color::Fg]->pixel);
+    auto pixel = invert
+      ? _colorscheme.background()->pixel
+      : _colorscheme.foreground()->pixel;
+    XSetForeground(_display, _gc, pixel);
 
     if (filled)
       XFillRectangle(_display, _drawable, _gc, p.x, p.y, size.width, size.height);
@@ -118,13 +145,16 @@ namespace suckless {
     _xfont   = XftFontOpenName(_display, d.screen(), fname.c_str());
     _pattern = FcNameParse((FcChar8*)fname.c_str());
     if (!_xfont) {
-      std::cerr << "Error: cannot load font from name: " << fname << '\n';
-      return; // throw?
+      std::stringstream ss;
+      ss << "Error: cannot load font from name: " << fname;
+      throw std::runtime_error(ss.str());
     }
     if (!_pattern) {
-      std::cerr << "Error: cannot parser font name to pattern: " << fname << '\n';
       XftFontClose(_display, _xfont);
-      return; // throw?
+
+      std::stringstream ss;
+      ss << "Error: cannot parser font name to pattern: " << fname;
+      throw std::runtime_error(ss.str());
     }
     _height = _xfont->ascent + _xfont->descent;
   }
@@ -134,8 +164,7 @@ namespace suckless {
   {
     _xfont = XftFontOpenPattern(_display, pattern);
     if (!_xfont) {
-      std::cerr << "Error: cannot parse font from pattern.\n";
-      return; // throw?
+      throw std::runtime_error("Error: cannot parse font from pattern.");
     }
     _height = _xfont->ascent + _xfont->descent;
   }
@@ -160,14 +189,14 @@ namespace suckless {
     XftFontClose(_display, _xfont);
   }
 
-  auto font::getExtents(const std::string& text, unsigned int len)
+  auto font::getExtents(const std::string& text)
     -> rect
   {
     XGlyphInfo ext;
     XftTextExtentsUtf8(
       _display, _xfont,
       (XftChar8*)text.c_str(),
-      len, &ext);
+      text.size(), &ext);
     return {static_cast<unsigned int>(ext.xOff), _height};
   }
 
@@ -184,28 +213,26 @@ namespace suckless {
   fontset::fontset(drawable& d, const std::vector<std::string>& fonts) :
     _fonts{}
   {
-    for (const auto& fname: fonts) {
-      _fonts.push_front(font{d, fname});
-    }
+    for (const auto& fname: fonts)
+      _fonts.emplace_front(d, fname);
   }
 
-  color_scheme::color_scheme() : _colors{} {  }
+  color_scheme::color_scheme() : _foreground{}, _background{} {  }
 
   color_scheme::color_scheme(
     const drawable& d,
-    const std::vector<std::string>& names) :
-    _colors{}
+    const std::string& background,
+    const std::string& foregound) :
+    _foreground{loadColor(d, foregound)}, _background{loadColor(d, background)}
   {
-    // we need at least two colors to make a color scheme
-    if (names.size() < 2)
-      return; // throw?
-
-    for (const auto& c: names)
-      _colors.push_back(loadColor(d, c));
   }
 
-  XftColor* color_scheme::operator[](Color index) {
-    return &_colors[static_cast<std::size_t>(index)];
+  auto color_scheme::foreground() -> XftColor* {
+    return &_foreground;
+  }
+
+  auto color_scheme::background() -> XftColor* {
+    return &_background;
   }
 
   XftColor color_scheme::loadColor(const drawable& d, const std::string& name) {
@@ -216,8 +243,9 @@ namespace suckless {
       name.c_str(), &xcolor);
 
     if (!res) {
-      std::cerr << "Error: cannot allocate color " << name << '\n';
-      // throw?
+      std::stringstream ss;
+      ss << "Error: cannot allocate color " << name << '\n';
+      throw std::runtime_error(ss.str());
     }
     return xcolor;
   }

@@ -32,7 +32,8 @@ int main(int argc, char* argv[]) {
 
   std::cout << "Config:\n"
     << "x: " << config.pos.x << ", y: " << config.pos.y
-    << ", w: " << config.size.width << ", h: " << config.size.height << '\n';
+    << ", w: " << config.size.width << ", h: " << config.size.height
+    << ", top: " << std::boolalpha << config.topbar << '\n';
 
   auto d = dmenu::menu::create(config);
 

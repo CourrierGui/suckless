@@ -36,7 +36,7 @@ namespace suckless {
 
       ~font();
 
-      auto getExtents(const std::string& text, unsigned int len) -> rect;
+      auto getExtents(const std::string& text) -> rect;
       auto height() -> unsigned int;
       auto xfont() const -> XftFont*;
 
@@ -59,12 +59,17 @@ namespace suckless {
   class color_scheme {
     public:
       color_scheme();
-      color_scheme(const drawable& d, const std::vector<std::string>& names);
-      XftColor* operator[](Color index);
+      color_scheme(
+        const drawable& d,
+        const std::string& foreground,
+        const std::string& background);
+      auto foreground() -> XftColor*;
+      auto background() -> XftColor*;
 
     private:
       XftColor loadColor(const drawable& d, const std::string& name);
-      std::vector<XftColor> _colors;
+      XftColor _background;
+      XftColor _foreground;
   };
 
   class cursor {
@@ -93,10 +98,11 @@ namespace suckless {
       auto screen() const -> int;
 
       void setFontSet(const std::vector<std::string>& fonts);
+      auto textWidth(const std::string& text) -> unsigned int;
       auto fontHeight() -> unsigned int;
       void setColorScheme(const color_scheme& cs);
 
-      void draw_text(
+      int draw_text(
         const position& p, const rect& size,
         unsigned char left_padding,
         const std::string& text, bool invert);
@@ -112,7 +118,7 @@ namespace suckless {
       Window       _root;
       Drawable     _drawable;
       GC           _gc;
-      color_scheme _color;
+      color_scheme _colorscheme;
       std::vector<font> _fontset;
   };
 
