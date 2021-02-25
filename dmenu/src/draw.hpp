@@ -31,8 +31,11 @@ namespace suckless {
     public:
       font(const drawable& d, const std::string& fname);
       font(const drawable& d, FcPattern* pattern);
-      font& operator=(const font& f);
-      font(const font& f);
+
+      font& operator=(font&& f) = default;
+      font(font&& f) = default;
+      font& operator=(const font& f) = delete;
+      font(const font& f) = delete;
 
       ~font();
 
@@ -87,11 +90,16 @@ namespace suckless {
   class drawable {
     public:
       drawable(Display* display, int screen, Window window, rect size);
-      drawable(const drawable& d);
-      drawable& operator=(const drawable& d);
+
+      drawable(drawable&& d) = default;
+      drawable& operator=(drawable&& d) = default;
+      drawable(const drawable& d) = delete;
+      drawable& operator=(const drawable& d) = delete;
+
       ~drawable();
       void resize(rect size);
       void map(Window window, position pos, rect size);
+      // does not do the same thing as TEXTW and drw_fontset_getwidth
       auto getWidth(const std::string& text) -> unsigned int;
 
       Display* display() const;

@@ -17,23 +17,6 @@ namespace suckless {
     XSetLineAttributes(_display, _gc, 1, LineSolid, CapButt, JoinMiter);
   }
 
-  drawable& drawable::operator=(const drawable& d) {
-    _size = d._size;
-    _display = d._display;
-    _screen = d._screen;
-    _root = d._root;
-    _drawable = d._drawable;
-    _gc = d._gc;
-    _colorscheme = d._colorscheme;
-    _fontset = d._fontset;
-    return *this;
-  }
-
-  drawable::drawable(const drawable& d) :
-    _size{d._size}, _display{d._display}, _screen{d._screen}, _root{d._root},
-    _drawable{d._drawable}, _gc{d._gc}, _colorscheme{d._colorscheme},
-    _fontset{d._fontset} {  }
-
   drawable::~drawable() {
     XFreePixmap(_display, _drawable);
     XFreeGC(_display, _gc);
@@ -105,7 +88,7 @@ namespace suckless {
     auto x = p.x + left_padding;
     auto w = size.width - left_padding;
 
-    auto font = _fontset.front();
+    auto& font = _fontset.front();
     auto text_with = font.getExtents(text).width;
 
     auto y = p.y
@@ -169,20 +152,6 @@ namespace suckless {
     _height = _xfont->ascent + _xfont->descent;
   }
 
-  font& font::operator=(const font& f) {
-    _display = f._display;
-    _xfont = f._xfont;
-    _pattern = f._pattern;
-    _height = f._height;
-    return *this;
-  }
-
-  font::font(const font& f) :
-    _display{f._display}, _xfont{f._xfont}, _pattern{f._pattern}, _height{f._height}
-  {
-
-  }
-
   font::~font() {
     if (_pattern)
       FcPatternDestroy(_pattern);
@@ -217,13 +186,14 @@ namespace suckless {
       _fonts.emplace_front(d, fname);
   }
 
-  color_scheme::color_scheme() : _foreground{}, _background{} {  }
+  color_scheme::color_scheme() : _background{}, _foreground{} {  }
 
   color_scheme::color_scheme(
     const drawable& d,
     const std::string& background,
     const std::string& foregound) :
-    _foreground{loadColor(d, foregound)}, _background{loadColor(d, background)}
+    _background{std::move(loadColor(d, background))},
+    _foreground{std::move(loadColor(d, foregound))}
   {
   }
 

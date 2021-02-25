@@ -2,15 +2,11 @@
 #include "../src/draw.hpp"
 
 #include <array>
-#include <chrono>
-#include <thread>
-
-using namespace std::chrono_literals;
 #include <iostream>
 
 int main(int argc, char* argv[]) {
 
-  dmenu::config config = {
+  dmenu::Config config = {
     .pos = { 0, 0 },
     .size = { 0, 50 },
     .topbar = true,
@@ -20,6 +16,7 @@ int main(int argc, char* argv[]) {
     },
     .prompt = "",
     .colors = {
+      // struct pair fg/bg?
       std::string{"#bbbbbb"}, std::string{"#222222"},
       std::string{"#eeeeee"}, std::string{"#005577"},
       std::string{"#000000"}, std::string{"#00ffff"},
@@ -27,7 +24,6 @@ int main(int argc, char* argv[]) {
     .lines = 0,
     .delimiters = " "
   };
-
   dmenu::parse_args(argc, argv, config);
 
   std::cout << "Config:\n"
@@ -35,9 +31,13 @@ int main(int argc, char* argv[]) {
     << ", w: " << config.size.width << ", h: " << config.size.height
     << ", top: " << std::boolalpha << config.topbar << '\n';
 
-  auto d = dmenu::menu::create(config);
+  auto display = dmenu::openDisplay();
 
-  std::this_thread::sleep_for(2s);
+  auto items = dmenu::Items::readStdin();
+  auto keyboard = dmenu::Keyboard(display);
+  auto menu = dmenu::Dmenu(display, config);
 
-  return 0; // unreachable
+  dmenu::run(display, menu, items, keyboard);
+
+  return 1; // unreachable
 }
