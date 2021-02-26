@@ -55,17 +55,13 @@ namespace suckless {
   }
 
   auto drawable::getWidth(const std::string& text) -> unsigned int {
-    return 0;
+    return _fontset.front().getExtents(text).width;
   }
 
   void drawable::setFontSet(const std::vector<std::string>& fonts) {
     for (const auto& f: fonts) {
       _fontset.emplace_back(*this, f);
     }
-  }
-
-  auto drawable::textWidth(const std::string& text) -> unsigned int {
-    return _fontset.front().getExtents(text).width;
   }
 
   void drawable::setColorScheme(const color_scheme& cs) {
@@ -104,7 +100,7 @@ namespace suckless {
     w -= text_with;
 
     XftDrawDestroy(d);
-    return x;
+    return x + w; // w = right padding at the end
   }
 
   void drawable::draw_rectangle(

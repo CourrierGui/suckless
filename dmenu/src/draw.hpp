@@ -106,7 +106,6 @@ namespace suckless {
       auto screen() const -> int;
 
       void setFontSet(const std::vector<std::string>& fonts);
-      auto textWidth(const std::string& text) -> unsigned int;
       auto fontHeight() -> unsigned int;
       void setColorScheme(const color_scheme& cs);
 

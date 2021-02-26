@@ -20,13 +20,19 @@ namespace dmenu {
 
   class Items {
     public:
+      enum class Tag { Match, Prefix, Substr, Out };
+      struct Item {
+        std::string text;
+        int position;
+        Tag tag;
+      };
       static Items readStdin();
       void match(const std::string& input);
-      auto items() const -> const std::vector<std::string>&;
+      auto items() const -> const std::vector<Item>&;
 
     private:
-      Items(std::vector<std::string>&& items);
-      std::vector<std::string> _items;
+      Items(std::vector<Item>&& items);
+      std::vector<Item> _items;
   };
 
   class Keyboard {
@@ -35,7 +41,7 @@ namespace dmenu {
       Keyboard(const Keyboard& keyboard);
       Keyboard& operator=(const Keyboard& keyboard);
 
-      void processKey(XKeyEvent& keypress);
+      void processKey(XKeyEvent& keypress, Items& items, unsigned int& cp);
       void setWindow(Display* display, Window window);
       auto input() const -> const std::string&;
 
@@ -49,8 +55,8 @@ namespace dmenu {
   class Dmenu {
     public:
       Dmenu(Display* display, Config& config);
-      void draw(const std::string& text, const Items& items);
-      void draw(const std::string& text);
+      void draw(const std::string& text, unsigned int cp, const Items& items);
+      void draw(const std::string& text, unsigned int cp);
       auto window() -> Window;
       void map();
       void focus();
@@ -59,15 +65,19 @@ namespace dmenu {
       static auto _makeDrawable(Display* display, Config& config) -> suckless::drawable&;
 
       suckless::drawable& _drawable;
-      suckless::rect     _size;
-      unsigned int       _paddingLR;
-      unsigned int       _paddingTB = 2;
-      Window             _window;
+      suckless::rect      _size;
+      unsigned int        _paddingLR;
+      unsigned int        _paddingTB = 2;
+      unsigned int        _inputWidth;
+      Window              _window;
+      std::string         _prompt;
       std::vector<suckless::color_scheme> _schemes;
 
       void _clear();
       auto _drawPrompt(unsigned int x) -> unsigned int;
-      auto _drawInput(const std::string& text, unsigned int x) -> unsigned int;
+      auto _drawInput(
+        const std::string& text, unsigned int x, unsigned int cp)
+        -> unsigned int;
       auto _drawItems(const Items& items, unsigned int x) -> unsigned int;
   };
 

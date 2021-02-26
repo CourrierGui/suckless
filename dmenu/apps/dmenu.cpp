@@ -29,7 +29,9 @@ int main(int argc, char* argv[]) {
   std::cout << "Config:\n"
     << "x: " << config.pos.x << ", y: " << config.pos.y
     << ", w: " << config.size.width << ", h: " << config.size.height
-    << ", top: " << std::boolalpha << config.topbar << '\n';
+    << ", top: " << std::boolalpha << config.topbar
+    << ", prompt: \"" << config.prompt << '\"'
+    << ", lines: " << config.lines << '\n';
 
   auto display = dmenu::openDisplay();
 
