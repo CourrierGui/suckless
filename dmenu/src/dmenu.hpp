@@ -71,6 +71,7 @@ namespace dmenu {
       unsigned int        _inputWidth;
       Window              _window;
       std::string         _prompt;
+      unsigned int        _lines;
       std::vector<sl::color_scheme> _schemes;
 
       void _clear();

@@ -10,17 +10,14 @@
 #include <bitset>
 #include <iostream>
 
-//TODO display
-//- handle multi line display
-//
 //TODO text input
 //- insert at cursor position
 //- move cursor
-//
+
 //TODO output
 //- write selected match on stdin when user hit Enter
 //- change selected word with arrow keys
-//
+
 //TODO style
 //- switch all attributes and methods to caml case
 
@@ -206,13 +203,13 @@ namespace dmenu {
     _drawable(_makeDrawable(display, config)),
     _size(), _paddingLR(_drawable.fontHeight()),
     _paddingTB(2), _inputWidth(config.size.width/3),
-    _window(), _prompt{config.prompt}, _schemes()
+    _window(), _prompt{config.prompt}, _lines(config.lines),
+    _schemes()
   {
     auto it = config.colors.begin();
     while (it != config.colors.end()) {
       _schemes.emplace_back(_drawable, *it++, *it++);
     }
-
     _size.height = _drawable.fontHeight() + _paddingTB;
     _size.width = config.size.width;
 
@@ -221,10 +218,14 @@ namespace dmenu {
     swa.event_mask = ExposureMask | KeyPressMask | VisibilityChangeMask;
     swa.background_pixel = _schemes.front().background()->pixel;
 
+    auto height = (_lines == 0) ?
+      _size.height :
+      _size.height * (_lines+1);
+
     _window = XCreateWindow(
       display, DefaultRootWindow(display),
       config.pos.x, config.pos.y,
-      config.size.width, config.size.height, 0,
+      _size.width, height, 0,
       CopyFromParent, CopyFromParent, CopyFromParent,
       CWOverrideRedirect | CWBackPixel | CWEventMask, &swa);
 
@@ -232,13 +233,9 @@ namespace dmenu {
     XSetClassHint(display, _window, &ch);
 
     XMapRaised(display, _window);
+    _drawable.resize({_size.width, height});
     // embed?
-    _drawable.resize(config.size);
     draw("", 0);
-
-    // inputwidth
-    // promptwidth
-    // lines
   }
 
   auto Dmenu::window() -> Window {
@@ -264,8 +261,9 @@ namespace dmenu {
   }
 
   void Dmenu::_clear() {
+    auto height = (_lines == 0) ? _size.height : (_lines+1) * _size.height;
     _drawable.setColorScheme(_schemes[0]);
-    _drawable.draw_rectangle({0, 0}, _size, true, true);
+    _drawable.draw_rectangle({0, 0}, {_size.width, height}, true, true);
   }
 
   auto Dmenu::_drawPrompt(unsigned int x) -> unsigned int {
@@ -291,37 +289,55 @@ namespace dmenu {
     _drawable.draw_text(
       {x, 0}, {_inputWidth, _size.height}, _paddingLR / 2, input, false);
     _drawable.draw_rectangle({x+cursor, 2}, {2, _size.height-4}, true, false);
-    return x+_inputWidth;
+    if (_lines == 0)
+      return x+_inputWidth;
+    else
+      return x;
   }
 
   auto Dmenu::_drawItems(const Items& items, unsigned int x) -> unsigned int {
+    unsigned int y = 0;
     const auto& list = items.items();
-    _drawable.setColorScheme(_schemes[2]);
-    auto s = sl::rect{
-      _drawable.getWidth(list.front().text)+_paddingLR,
-        _size.height
-    };
-    x = _drawable.draw_text({x, 0}, s, _paddingLR / 2, list.front().text, false);
-    // draw Out tags only if they are all outs
-    // (i.e. the first one is out, because outs are last)
-    bool draw_outs = list.front().tag == Items::Tag::Out;
 
-    // draw other items
-    _drawable.setColorScheme(_schemes[0]);
-    for (auto it=list.begin()+1; it!=list.end(); ++it) {
-      if (!draw_outs && it->tag == Items::Tag::Out)
-        break;
-      auto w = _drawable.getWidth(it->text)+_paddingLR;
-      if (x + w > _size.width)
-        break;
-      x = _drawable.draw_text(
-        {x, 0}, {w, _size.height}, _paddingLR / 2, it->text, false);
+    if (_lines == 0) {
+      _drawable.setColorScheme(_schemes[2]);
+      auto s = sl::rect{
+        _drawable.getWidth(list.front().text)+_paddingLR, _size.height
+      };
+      x = _drawable.draw_text({x, y}, s, _paddingLR / 2, list.front().text, false);
+      // draw Out tags only if they are all outs
+      // (i.e. the first one is out, because outs are last)
+      bool draw_outs = list.front().tag == Items::Tag::Out;
+
+      // draw other items
+      _drawable.setColorScheme(_schemes[0]);
+      for (auto it=list.begin()+1; it!=list.end(); ++it) {
+        if (!draw_outs && it->tag == Items::Tag::Out)
+          break;
+        auto w = _drawable.getWidth(it->text)+_paddingLR;
+        if (x + w > _size.width)
+          break;
+        x = _drawable.draw_text(
+          {x, y}, {w, _size.height}, _paddingLR / 2, it->text, false);
+      }
+    } else {
+      unsigned int y = _size.height;
+      _drawable.setColorScheme(_schemes[2]);
+      _drawable.draw_text({x, y}, _size, _paddingLR/2, list.front().text, false);
+
+      _drawable.setColorScheme(_schemes[0]);
+      auto max = std::min((size_t)_lines, list.size());
+      for (size_t i=1; i<max; ++i) {
+        y += _size.height;
+        _drawable.draw_text({x, y}, _size, _paddingLR/2, list[i].text, false);
+      }
     }
     return x;
   }
 
   void Dmenu::map() {
-    _drawable.map(_window, {0, 0}, _size);
+    auto height = (_lines == 0) ? _size.height : (_lines+1) * _size.height;
+    _drawable.map(_window, {0, 0}, {_size.width, height});
   }
 
   void Dmenu::draw(const std::string& input, unsigned int cp) {
@@ -330,7 +346,7 @@ namespace dmenu {
     unsigned int x = 0;
     x = _drawPrompt(x);
     x = _drawInput(input, x, cp);
-    _drawable.map(_window, {0, 0}, _size);
+    map();
   }
 
   void Dmenu::draw(const std::string& input, unsigned int cp, const Items& items) {
@@ -340,7 +356,7 @@ namespace dmenu {
     x = _drawPrompt(x);
     x = _drawInput(input, x, cp);
     x = _drawItems(items, x);
-    _drawable.map(_window, {0, 0}, _size);
+    map();
   }
 
   void Dmenu::focus() {
