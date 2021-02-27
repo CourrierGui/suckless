@@ -2,6 +2,8 @@
 #include <iostream>
 #include <sstream>
 
+#include <bitset>
+
 namespace suckless {
 
   drawable::drawable(Display* display, int screen, Window root, rect size) :
@@ -68,6 +70,32 @@ namespace suckless {
     _colorscheme = cs;
   }
 
+  auto decodeUtf8(std::string::const_iterator& it) -> FcChar32 {
+    if ((*it & 0b10000000) == 0b0000000) {
+      return *it++;
+
+    } else if ((*it & 0b11100000) == 0b11000000) {
+
+      return ((*(it++) & 0b00011111) << 6)
+            | (*(it++) & 0b00111111);
+
+    } else if ((*it & 0b11110000) == 0b11100000) {
+
+      return ((*(it++) & 0b00001111) << 12)
+           | ((*(it++) & 0b00111111) << 6)
+           | (*(it++) & 0b00111111);
+
+    } else if ((*it & 0b11111000) == 0b11110000) {
+
+      return ((*(it++) & 0b00000111) << 18)
+           | ((*(it++) & 0b00111111) << 12)
+           | ((*(it++) & 0b00111111) << 6)
+           | (*(it++) & 0b00111111);
+    } else {
+      return *(it++) & 0b01111111;
+    }
+  }
+
   int drawable::draw_text(
     const position& p, const rect& size,
     unsigned char left_padding,
@@ -84,20 +112,45 @@ namespace suckless {
     auto x = p.x + left_padding;
     auto w = size.width - left_padding;
 
-    auto& font = _fontset.front();
-    auto text_with = font.getExtents(text).width;
+    auto fontit = _fontset.begin();
+    std::string buffer;
+    auto it = text.cbegin();
+    while (it != text.end()) {
+      auto tmp = it;
+      FcChar32 codepoint = decodeUtf8(it);
+      while (XftCharExists(_display, fontit->xfont(), codepoint) == FcTrue)
+      {
+        buffer.append(tmp, it);
+        if (it == text.end())
+          break;
+        tmp = it;
+        codepoint = decodeUtf8(it);
+      }
+      if (!buffer.empty()) {
+        auto& font = *fontit;
+        auto text_with = font.getExtents(buffer).width;
 
-    auto y = p.y
-      + (size.height - font.height()) / 2
-      + font.xfont()->ascent;
+        auto y = p.y
+          + (size.height - font.height()) / 2
+          + font.xfont()->ascent;
 
-    XftDrawStringUtf8(
-      d, _colorscheme.foreground(),
-      font.xfont(), x, y,
-      (XftChar8*)text.c_str(), text.size());
+        XftDrawStringUtf8(
+          d, _colorscheme.foreground(),
+          font.xfont(), x, y,
+          (XftChar8*)buffer.c_str(), buffer.size());
 
-    x += text_with;
-    w -= text_with;
+        x += text_with;
+        w -= text_with;
+        buffer.clear();
+        fontit = _fontset.begin();
+      } else {
+        ++fontit;
+        if (fontit == _fontset.end())
+          fontit = _fontset.begin();
+        else
+          it = tmp;
+      }
+    }
 
     XftDrawDestroy(d);
     return x + w; // w = right padding at the end
@@ -156,14 +209,14 @@ namespace suckless {
 
   auto font::getExtents(const std::string& text)
     -> rect
-  {
-    XGlyphInfo ext;
-    XftTextExtentsUtf8(
-      _display, _xfont,
-      (XftChar8*)text.c_str(),
-      text.size(), &ext);
-    return {static_cast<unsigned int>(ext.xOff), _height};
-  }
+    {
+      XGlyphInfo ext;
+      XftTextExtentsUtf8(
+        _display, _xfont,
+        (XftChar8*)text.c_str(),
+        text.size(), &ext);
+      return {static_cast<unsigned int>(ext.xOff), _height};
+    }
 
   auto font::xfont() const -> XftFont* {
     return _xfont;

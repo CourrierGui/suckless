@@ -7,7 +7,23 @@
 #include <stdexcept>
 #include <algorithm>
 
+#include <bitset>
 #include <iostream>
+
+//TODO display
+//- handle multi line display
+//
+//TODO text input
+//- insert at cursor position
+//- move cursor
+//
+//TODO output
+//- write selected match on stdin when user hit Enter
+//- change selected word with arrow keys
+//
+//TODO style
+//- switch all attributes and methods to caml case
+//- rename suckless namespace to sl
 
 namespace dmenu {
 
@@ -59,6 +75,7 @@ namespace dmenu {
   // But everything is done in place so it may be faster than the other method
   // must be tested
   //TODO should the order of the matches be taken into account?
+  //-> not done in the original dmenu
   void Items::match(const std::string& input) {
     auto key = [&input, n=_items.size()](Item& i) -> int {
       if (input == i.text) {
@@ -106,18 +123,41 @@ namespace dmenu {
       XNClientWindow, window, XNFocusWindow, window, NULL);
   }
 
+  void display(char c) {
+    std::cout
+      << c << ' '
+      << std::bitset<8>(c) << ' '
+      << std::bitset<8>(c & 0b11000000) << ' '
+      << ((c & 0b11000000) == 0b10000000) << '\n';
+  }
+
+  auto lastUtf8CharSize(const std::string& str) -> size_t {
+    size_t size = 1;
+    auto it = str.end();;
+    --it;
+    while ((*it & 0b11000000) == 0b10000000) {
+      --it;
+      ++size;
+    }
+    return size;
+  }
+
   void Keyboard::processKey(XKeyEvent& keypress, Items& items, unsigned int& cp) {
     char buffer[32];
     KeySym keysym;
     Status status;
-    int len = XmbLookupString(_ic, &keypress, buffer, sizeof buffer, &keysym, &status);
+    int len = Xutf8LookupString(
+      _ic, &keypress, buffer, sizeof buffer, &keysym, &status);
 
     switch (status) {
       default: /* XLookupNone, XBufferOverflow */
         return;
       case XLookupChars:
-        if (!std::iscntrl(*buffer))
-          _text.append(buffer);
+        if (!std::iscntrl(*buffer)) {
+          _text.append(buffer, len);
+          items.match(_text);
+          cp += len;
+        }
         break;
       case XLookupKeySym:
       case XLookupBoth:
@@ -128,17 +168,21 @@ namespace dmenu {
       case XK_Escape:
         std::exit(1);
       case XK_BackSpace:
-        if (!_text.empty()) {
-          _text.pop_back();
+        if (cp > 0) {
+          auto size = lastUtf8CharSize(_text);
+          cp -= size;
+          _text.resize(_text.size() - size);
           items.match(_text);
-          --cp;
         }
         break;
       default:
         if (!iscntrl(*buffer)) {
-          _text.append(buffer);
+          for (int i=0; i<len; ++i) {
+            display(buffer[i]);
+          }
+          _text.append(buffer, len);
+          cp += len;
           items.match(_text);
-          ++cp;
         }
         break;
     }
@@ -282,7 +326,6 @@ namespace dmenu {
   }
 
   void Dmenu::draw(const std::string& input, unsigned int cp) {
-    std::cout << "draw\n";
     _clear();
 
     unsigned int x = 0;
