@@ -7,8 +7,8 @@
 namespace dmenu {
 
   struct Config {
-    suckless::position pos;
-    suckless::rect     size;
+    sl::position pos;
+    sl::rect     size;
     bool               topbar;
 
     std::vector<std::string> fonts;
@@ -62,16 +62,16 @@ namespace dmenu {
       void focus();
 
     private:
-      static auto _makeDrawable(Display* display, Config& config) -> suckless::drawable&;
+      static auto _makeDrawable(Display* display, Config& config) -> sl::drawable&;
 
-      suckless::drawable& _drawable;
-      suckless::rect      _size;
+      sl::drawable& _drawable;
+      sl::rect      _size;
       unsigned int        _paddingLR;
       unsigned int        _paddingTB = 2;
       unsigned int        _inputWidth;
       Window              _window;
       std::string         _prompt;
-      std::vector<suckless::color_scheme> _schemes;
+      std::vector<sl::color_scheme> _schemes;
 
       void _clear();
       auto _drawPrompt(unsigned int x) -> unsigned int;

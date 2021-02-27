@@ -23,7 +23,6 @@
 //
 //TODO style
 //- switch all attributes and methods to caml case
-//- rename suckless namespace to sl
 
 namespace dmenu {
 
@@ -246,20 +245,20 @@ namespace dmenu {
     return _window;
   }
 
-  suckless::drawable& Dmenu::_makeDrawable(Display* display, Config& config) {
+  sl::drawable& Dmenu::_makeDrawable(Display* display, Config& config) {
     auto screen = DefaultScreen(display);
     auto root   = RootWindow(display, screen);
 
     XWindowAttributes wa;
     XGetWindowAttributes(display, root, &wa);
 
-    suckless::rect s = {
+    sl::rect s = {
       static_cast<unsigned int>(wa.width),
       static_cast<unsigned int>(wa.height)
     };
     if (config.size.width == 0)
       config.size.width = wa.width;
-    static suckless::drawable drawable{display, screen, root, s};
+    static sl::drawable drawable{display, screen, root, s};
     drawable.setFontSet(config.fonts);
     return drawable;
   }
@@ -298,7 +297,7 @@ namespace dmenu {
   auto Dmenu::_drawItems(const Items& items, unsigned int x) -> unsigned int {
     const auto& list = items.items();
     _drawable.setColorScheme(_schemes[2]);
-    auto s = suckless::rect{
+    auto s = sl::rect{
       _drawable.getWidth(list.front().text)+_paddingLR,
         _size.height
     };

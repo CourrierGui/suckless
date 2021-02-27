@@ -9,7 +9,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xft/Xft.h>
 
-namespace suckless {
+namespace sl {
 
   enum class Color {
     Fg = 0,

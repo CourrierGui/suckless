@@ -4,7 +4,7 @@
 
 #include <bitset>
 
-namespace suckless {
+namespace sl {
 
   drawable::drawable(Display* display, int screen, Window root, rect size) :
     _size{size}, _display{display}, _screen{screen}, _root{root},
