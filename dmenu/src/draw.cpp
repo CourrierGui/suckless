@@ -143,6 +143,8 @@ namespace sl {
         w -= text_with;
         buffer.clear();
         fontit = _fontset.begin();
+        if (it != text.end())
+          it = tmp;
       } else {
         ++fontit;
         if (fontit == _fontset.end())

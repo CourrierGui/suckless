@@ -10,16 +10,18 @@
 #include <bitset>
 #include <iostream>
 
-//TODO text input
-//- insert at cursor position
-//- move cursor
+//TODO input abstraction
 
 //TODO output
-//- write selected match on stdin when user hit Enter
-//- change selected word with arrow keys
+// - scroll left and right with arrows
+// - display `<` and `>`
 
 //TODO style
-//- switch all attributes and methods to caml case
+// - switch all attributes and methods to caml case
+
+//TODO
+// - implement last command line arguments
+// - use char before and after cursor when moving
 
 namespace dmenu {
 
@@ -129,7 +131,7 @@ namespace dmenu {
 
   auto lastUtf8CharSize(const std::string& str) -> size_t {
     size_t size = 1;
-    auto it = str.end();;
+    auto it = str.end();
     --it;
     while ((*it & 0b11000000) == 0b10000000) {
       --it;
@@ -138,7 +140,32 @@ namespace dmenu {
     return size;
   }
 
-  void Keyboard::processKey(XKeyEvent& keypress, Items& items, unsigned int& cp) {
+  size_t previousUft8Char(const std::string& str, size_t position) {
+    size_t size = 0;
+    auto it = str.begin()+position;
+    while ((*it & 0b11000000) == 0b10000000) {
+      --it;
+      ++size;
+    }
+    return size+1;
+  }
+
+  size_t nextUft8Char(const std::string& str, size_t position) {
+    size_t size = 1;
+    auto it = str.begin()+position;
+    ++it;
+    while ((*it & 0b11000000) == 0b10000000) {
+      ++it;
+      ++size;
+    }
+    return size;
+  }
+
+  void Keyboard::processKey(
+    XKeyEvent& keypress, Items& items,
+    size_t& current_match,
+    unsigned int& cp)
+  {
     char buffer[32];
     KeySym keysym;
     Status status;
@@ -160,27 +187,59 @@ namespace dmenu {
         break;
     }
 
-    switch (keysym) {
-      case XK_Escape:
-        std::exit(1);
-      case XK_BackSpace:
-        if (cp > 0) {
-          auto size = lastUtf8CharSize(_text);
-          cp -= size;
-          _text.resize(_text.size() - size);
-          items.match(_text);
-        }
-        break;
-      default:
-        if (!iscntrl(*buffer)) {
-          for (int i=0; i<len; ++i) {
-            display(buffer[i]);
+    if (keypress.state & ControlMask) {
+      switch (keysym) {
+        case XK_Left:
+          if (cp > 0) {
+            auto size = previousUft8Char(_text, cp);
+            cp -= size;
           }
-          _text.append(buffer, len);
-          cp += len;
-          items.match(_text);
-        }
-        break;
+          break;
+        case XK_Right:
+          if (cp < _text.size()) {
+            auto size = nextUft8Char(_text, cp);
+            cp += size;
+          }
+        default:
+          break;
+      }
+    } else {
+      switch (keysym) {
+        case XK_Escape:
+          std::exit(1);
+        case XK_BackSpace:
+          if (cp > 0) {
+            auto size = previousUft8Char(_text, cp);
+            cp -= size;
+            _text.resize(_text.size() - size);
+            items.match(_text);
+            current_match = 0;
+          }
+          break;
+        case XK_Up:
+        case XK_Left:
+          if (current_match > 0)
+            --current_match;
+          break;
+        case XK_Down:
+        case XK_Right:
+          if (current_match < items.items().size())
+            ++current_match;
+          break;
+        case XK_Return:
+          std::cout << items.items()[current_match].text << '\n';
+          // cleanup
+          std::exit(0);
+          break;
+        default:
+          if (!iscntrl(*buffer)) {
+            _text.insert(cp, buffer, len);
+            cp += len;
+            items.match(_text);
+            current_match = 0;
+          }
+          break;
+      }
     }
   }
 
@@ -295,49 +354,81 @@ namespace dmenu {
       return x;
   }
 
-  auto Dmenu::_drawItems(const Items& items, unsigned int x) -> unsigned int {
-    unsigned int y = 0;
+  int Dmenu::_drawItemRange(
+    std::vector<Items::Item>::const_iterator beg,
+    std::vector<Items::Item>::const_iterator end,
+    unsigned int x, bool draw_outs)
+  {
+    for (auto it=beg; it!=end; ++it) {
+      if (!draw_outs && it->tag == Items::Tag::Out)
+        break;
+      auto w = _drawable.getWidth(it->text) + _paddingLR;
+      if (x + w > _size.width)
+        break;
+      x = _drawItem(*it, {x, 0}, w);
+    }
+    return x;
+  }
+
+  auto Dmenu::_drawItems(
+    const Items& items,
+    size_t current_match,
+    unsigned int x)
+    -> unsigned int
+  {
     const auto& list = items.items();
 
     if (_lines == 0) {
-      _drawable.setColorScheme(_schemes[2]);
-      auto s = sl::rect{
-        _drawable.getWidth(list.front().text)+_paddingLR, _size.height
-      };
-      x = _drawable.draw_text({x, y}, s, _paddingLR / 2, list.front().text, false);
       // draw Out tags only if they are all outs
       // (i.e. the first one is out, because outs are last)
       bool draw_outs = list.front().tag == Items::Tag::Out;
 
       // draw other items
-      _drawable.setColorScheme(_schemes[0]);
-      for (auto it=list.begin()+1; it!=list.end(); ++it) {
-        if (!draw_outs && it->tag == Items::Tag::Out)
-          break;
-        auto w = _drawable.getWidth(it->text)+_paddingLR;
-        if (x + w > _size.width)
-          break;
-        x = _drawable.draw_text(
-          {x, y}, {w, _size.height}, _paddingLR / 2, it->text, false);
-      }
-    } else {
-      unsigned int y = _size.height;
-      _drawable.setColorScheme(_schemes[2]);
-      _drawable.draw_text({x, y}, _size, _paddingLR/2, list.front().text, false);
+      auto begin = list.begin();
 
       _drawable.setColorScheme(_schemes[0]);
+      x = _drawItemRange(begin, begin+current_match, x, draw_outs);
+
+      _drawable.setColorScheme(_schemes[2]);
+      x = _drawItemRange(begin+current_match, begin+current_match+1, x, draw_outs);
+
+      _drawable.setColorScheme(_schemes[0]);
+      x = _drawItemRange(begin+current_match+1, list.end(), x, draw_outs);
+
+    } else {
+      unsigned int y = _size.height * (current_match + 1);
+
+      _drawable.setColorScheme(_schemes[2]);
+      _drawItem(list[current_match], {x, y}, _size.width);
+
+      y = _size.height;
+      _drawable.setColorScheme(_schemes[0]);
       auto max = std::min((size_t)_lines, list.size());
-      for (size_t i=1; i<max; ++i) {
+      for (size_t i=0; i<max; ++i) {
+        if (i == current_match) {
+          y += _size.height;
+          continue;
+        }
+        _drawItem(list[i], {x, y}, _size.width);
         y += _size.height;
-        _drawable.draw_text({x, y}, _size, _paddingLR/2, list[i].text, false);
       }
     }
     return x;
   }
 
+  auto Dmenu::_height() -> unsigned int {
+    return _size.height * ((_lines == 0) ? 1 : _lines+1);
+  }
+
+  int Dmenu::_drawItem(
+    const Items::Item& item, const sl::position& p, unsigned int width)
+  {
+    return _drawable.draw_text(
+      p, {width, _size.height}, _paddingLR/2, item.text, false);
+  }
+
   void Dmenu::map() {
-    auto height = (_lines == 0) ? _size.height : (_lines+1) * _size.height;
-    _drawable.map(_window, {0, 0}, {_size.width, height});
+    _drawable.map(_window, {0, 0}, {_size.width, _height()});
   }
 
   void Dmenu::draw(const std::string& input, unsigned int cp) {
@@ -349,13 +440,18 @@ namespace dmenu {
     map();
   }
 
-  void Dmenu::draw(const std::string& input, unsigned int cp, const Items& items) {
+  void Dmenu::draw(
+    const std::string& input,
+    size_t current_match,
+    unsigned int cp,
+    const Items& items)
+  {
     _clear();
 
     unsigned int x = 0;
     x = _drawPrompt(x);
     x = _drawInput(input, x, cp);
-    x = _drawItems(items, x);
+    x = _drawItems(items, current_match, x);
     map();
   }
 
@@ -379,6 +475,7 @@ namespace dmenu {
     XEvent ev;
     keyboard.setWindow(display, menu.window());
     unsigned int cp = 0;
+    size_t current_match = 0;
 
     while (!XNextEvent(display, &ev)) {
       if (XFilterEvent(&ev, menu.window()))
@@ -392,15 +489,15 @@ namespace dmenu {
           std::exit(1);
         case Expose:
           if (ev.xexpose.count == 0)
-            menu.draw(keyboard.input(), cp, items);
+            menu.draw(keyboard.input(), current_match, cp, items);
           break;
         case FocusIn:
           if (ev.xfocus.window != menu.window())
             menu.focus();
           break;
         case KeyPress:
-          keyboard.processKey(ev.xkey, items, cp);
-          menu.draw(keyboard.input(), cp, items);
+          keyboard.processKey(ev.xkey, items, current_match, cp);
+          menu.draw(keyboard.input(), current_match, cp, items);
         case SelectionNotify:
           /* if (ev.xselection.property == utf8) */
           /*   paste(); */
@@ -413,10 +510,22 @@ namespace dmenu {
     }
   }
 
+  void usage(std::ostream& os, int exit) {
+    os <<
+R"(usage: dmenu [-bfiv] [-l lines] [-p prompt] [-fn font] [-m monitor]
+             [-x xoffset] [-y yoffset] [-z width]
+             [-nb color] [-nf color] [-sb color] [-sf color] [-w windowid]\n
+)";
+    std::exit(exit);
+  }
+
   void parse_args(int& argc, char* argv[], Config& cfg) {
-    for (int i=0; i<argc; ++i) {
+    //TODO fiv, -fn font, -m monitor, -nb,-nf,-sb,-sf color, -w windowid
+    for (int i=1; i<argc; ++i) {
       char* arg = argv[i];
-      if (!strcmp(arg, "-x")) {
+      if (!strcmp(arg, "-h")) {
+        usage(std::cout, 0);
+      } else if (!strcmp(arg, "-x")) {
         cfg.pos.x = atoi(argv[++i]);
       } else if (!strcmp(arg, "-y")) {
         cfg.pos.y = atoi(argv[++i]);
@@ -429,6 +538,7 @@ namespace dmenu {
       } else if (!strcmp(arg, "-b")) {
         cfg.topbar = false;
       } else {
+        usage(std::cerr, 1);
       }
     }
   }

@@ -41,7 +41,7 @@ namespace dmenu {
       Keyboard(const Keyboard& keyboard);
       Keyboard& operator=(const Keyboard& keyboard);
 
-      void processKey(XKeyEvent& keypress, Items& items, unsigned int& cp);
+      void processKey(XKeyEvent& keypress, Items& items, size_t& cm, unsigned int& cp);
       void setWindow(Display* display, Window window);
       auto input() const -> const std::string&;
 
@@ -55,7 +55,13 @@ namespace dmenu {
   class Dmenu {
     public:
       Dmenu(Display* display, Config& config);
-      void draw(const std::string& text, unsigned int cp, const Items& items);
+
+      void draw(
+        const std::string& text,
+        size_t current_match,
+        unsigned int cp,
+        const Items& items);
+
       void draw(const std::string& text, unsigned int cp);
       auto window() -> Window;
       void map();
@@ -74,12 +80,19 @@ namespace dmenu {
       unsigned int        _lines;
       std::vector<sl::color_scheme> _schemes;
 
+      int _drawItemRange(
+        std::vector<Items::Item>::const_iterator beg,
+        std::vector<Items::Item>::const_iterator end,
+        unsigned int x, bool draw_outs);
       void _clear();
+      auto _height() -> unsigned int;
+      int _drawItem(const Items::Item& item, const sl::position& p, unsigned int width);
       auto _drawPrompt(unsigned int x) -> unsigned int;
       auto _drawInput(
         const std::string& text, unsigned int x, unsigned int cp)
         -> unsigned int;
-      auto _drawItems(const Items& items, unsigned int x) -> unsigned int;
+      auto _drawItems(
+        const Items& items, size_t current_match, unsigned int x) -> unsigned int;
   };
 
   auto openDisplay() -> Display*;
