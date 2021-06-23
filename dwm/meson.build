@@ -1,8 +1,3 @@
-freetype = dependency('freetype2', required : true)
-Xlib = dependency('X11', required : true)
-xft = dependency('xft', required : true)
-fontconfig = dependency('fontconfig', required : true)
-
 sources = [
   'dwm.c', 'drw.c', 'drw.h', 'util.c', 'util.h'
 ]
