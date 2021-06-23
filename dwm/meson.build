@@ -1,0 +1,20 @@
+freetype = dependency('freetype2', required : true)
+Xlib = dependency('X11', required : true)
+xft = dependency('xft', required : true)
+fontconfig = dependency('fontconfig', required : true)
+
+sources = [
+  'dwm.c', 'drw.c', 'drw.h', 'util.c', 'util.h'
+]
+
+version = '6.2'
+
+executable('dwm', sources,
+           dependencies : [ freetype, Xlib, xft, fontconfig ],
+           c_args : [
+             '-DVERSION="' + version + '"',
+             '-std=c99', '-Wno-deprecated-declarations'
+           ]
+)
+
+executable('transient', 'transient.c', dependencies : [ Xlib ])
