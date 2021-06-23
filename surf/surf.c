@@ -715,7 +715,7 @@ cookiepolicy_set(const WebKitCookieAcceptPolicy p)
 void
 seturiparameters(Client *c, const char *uri, ParamName *params)
 {
-	Parameter *config, *uriconfig = NULL;
+	Parameter *uriconfig = NULL;
 	int i, p;
 
 	for (i = 0; i < LENGTH(uriparams); ++i) {
@@ -1235,7 +1235,7 @@ readsock(GIOChannel *s, GIOCondition ioc, gpointer unused)
 		return TRUE;
 	}
 	if (msgsz < 2) {
-		fprintf(stderr, "surf: message too short: %d\n", msgsz);
+		fprintf(stderr, "surf: message too short: %lu\n", msgsz);
 		return TRUE;
 	}
 
@@ -1748,6 +1748,7 @@ responsereceived(WebKitDownload *d, GParamSpec *ps, Client *c)
 void
 download(Client *c, WebKitURIResponse *r)
 {
+    // FIXME this macro is very ugly, remove it
 	Arg a = (Arg)DOWNLOAD(webkit_uri_response_get_uri(r), geturi(c));
 	spawn(c, &a);
 }
@@ -1861,14 +1862,14 @@ msgext(Client *c, char type, const Arg *a)
 	if (spair[0] < 0)
 		return;
 
-	if ((ret = snprintf(msg, sizeof(msg), "%c%c%c", c->pageid, type, a->i))
+	if ((ret = snprintf(msg, sizeof(msg), "%lu%c%c", c->pageid, type, a->i))
 	    >= sizeof(msg)) {
 		fprintf(stderr, "surf: message too long: %d\n", ret);
 		return;
 	}
 
 	if (send(spair[0], msg, ret, 0) != ret)
-		fprintf(stderr, "surf: error sending: %u%c%d (%d)\n",
+		fprintf(stderr, "surf: error sending: %lu%c%d (%d)\n",
 		        c->pageid, type, a->i, ret);
 }
 
