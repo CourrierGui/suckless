@@ -1,5 +1,5 @@
 sources = [
-  'arg.h', 'config.def.h', 'dmenu.c', 'drw.c', 'drw.h', 'util.c', 'util.h',
+  'arg.h', 'config.h', 'dmenu.c', 'drw.c', 'drw.h', 'util.c', 'util.h',
 ]
 
 version = '5.0'
