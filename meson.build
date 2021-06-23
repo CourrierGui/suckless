@@ -7,3 +7,4 @@ fontconfig = dependency('fontconfig', required : true)
 
 subdir('dwm')
 subdir('st')
+subdir('dmenu')
