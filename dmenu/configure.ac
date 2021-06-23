@@ -30,4 +30,5 @@ AC_FUNC_REALLOC
 AC_CHECK_FUNCS([memmove setlocale strchr strdup strncasecmp strtol])
 
 AC_CONFIG_FILES([Makefile])
+CC_OPT="-Wall -Wextra -Weffc++ -Wpedantic -std=c++2a"
 AC_OUTPUT
