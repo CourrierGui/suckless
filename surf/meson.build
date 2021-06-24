@@ -20,7 +20,7 @@ webext_sources = [
   'webext-surf.c', 'arg.h', 'common.h', 'config.h',
 ]
 
-executable('surf', surf_sources,
+executable('surf', surf_sources, install : true,
            dependencies : [ Xlib, deps ],
            c_args : [
              '-DVERSION="' + version + '"',
@@ -29,10 +29,12 @@ executable('surf', surf_sources,
            ]
 )
 
-library('webext-surf', webext_sources,
+library('webext-surf', webext_sources, install : true,
            dependencies : [ Xlib, webkit ],
            c_args : [
              '-DVERSION="' + version + '"',
              '-std=gnu99'
            ]
 )
+
+install_man('surf.1')
