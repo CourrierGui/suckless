@@ -1,7 +1,7 @@
-diff -up dwmblocks/dwmblocks.c dwmblocksnew/dwmblocks.c
---- dwmblocks/dwmblocks.c	2020-08-17 04:10:55.645971091 -0300
-+++ dwmblocksnew/dwmblocks.c	2020-08-17 03:55:40.295990745 -0300
-@@ -26,6 +26,7 @@ typedef struct {
+diff -up a/dwmblocks.c b/dwmblocks.c
+--- a/dwmblocks.c	2020-12-22 14:25:05.289247774 +0200
++++ b/dwmblocks.c	2020-12-22 14:29:39.744943965 +0200
+@@ -28,6 +28,7 @@ typedef struct {
  void dummysighandler(int num);
  #endif
  void sighandler(int num);
@@ -9,13 +9,13 @@ diff -up dwmblocks/dwmblocks.c dwmblocksnew/dwmblocks.c
  void getcmds(int time);
  void getsigcmds(unsigned int signal);
  void setupsignals();
-@@ -43,15 +44,32 @@ static int screen;
- static Window root;
+@@ -52,14 +53,31 @@ static void (*writestatus) () = pstdout;
+ 
  static char statusbar[LENGTH(blocks)][CMDLENGTH] = {0};
  static char statusstr[2][STATUSLENGTH];
 +static char button[] = "\0";
  static int statusContinue = 1;
- static void (*writestatus) () = setroot;
+ static int returnStatus = 0;
  
  //opens process *cmd and stores output in *output
  void getcmd(const Block *block, char *output)
@@ -26,30 +26,28 @@ diff -up dwmblocks/dwmblocks.c dwmblocksnew/dwmblocks.c
 +		output++;
 +	}
  	strcpy(output, block->icon);
- 	char *cmd = block->command;
--	FILE *cmdf = popen(cmd,"r");
+-	FILE *cmdf = popen(block->command, "r");
 +	FILE *cmdf;
 +	if (*button)
 +	{
 +		setenv("BUTTON", button, 1);
-+		cmdf = popen(cmd,"r");
++		cmdf = popen(block->command,"r");
 +		*button = '\0';
 +		unsetenv("BUTTON");
 +	}
 +	else
 +	{
-+		cmdf = popen(cmd,"r");
++		cmdf = popen(block->command,"r");
 +	}
  	if (!cmdf)
  		return;
- 	char c;
-@@ -95,10 +113,16 @@ void setupsignals()
+ 	int i = strlen(block->icon);
+@@ -105,9 +123,15 @@ void setupsignals()
          signal(i, dummysighandler);
  #endif
  
 +	struct sigaction sa;
- 	for(unsigned int i = 0; i < LENGTH(blocks); i++)
- 	{
+ 	for (unsigned int i = 0; i < LENGTH(blocks); i++) {
 -		if (blocks[i].signal > 0)
 +		if (blocks[i].signal > 0) {
  			signal(SIGMINUS+blocks[i].signal, sighandler);
@@ -61,7 +59,7 @@ diff -up dwmblocks/dwmblocks.c dwmblocksnew/dwmblocks.c
  	}
  
  }
-@@ -156,6 +180,13 @@ void dummysighandler(int signum)
+@@ -173,6 +197,13 @@ void dummysighandler(int signum)
  {
      return;
  }
