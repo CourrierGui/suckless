@@ -37,4 +37,14 @@ library('webext-surf', webext_sources, install : true,
            ]
 )
 
+custom_target('surf open',
+  input : 'surf-open.sh',
+  output :  'surf-open.sh',
+  command : ['cp', '@INPUT@', '@OUTPUT@'],
+  install : true,
+  install_dir : get_option('bindir'),
+  build_by_default : true
+)
+
+
 install_man('surf.1')
