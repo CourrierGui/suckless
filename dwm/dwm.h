@@ -128,6 +128,7 @@ void clientmessage(XEvent *e);
 void configure(Client *c);
 void configurenotify(XEvent *e);
 void configurerequest(XEvent *e);
+void copyvalidchars(char *text, char *rawtext);
 Monitor *createmon(void);
 void destroynotify(XEvent *e);
 void detach(Client *c);
