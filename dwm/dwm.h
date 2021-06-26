@@ -222,6 +222,7 @@ void tagmon(const Arg *arg);
 void tile(Monitor *);
 void togglebar(const Arg *arg);
 void togglefloating(const Arg *arg);
+void togglefullscr(const Arg *arg);
 void toggletag(const Arg *arg);
 void toggleview(const Arg *arg);
 void unfocus(Client *c, int setfocus);

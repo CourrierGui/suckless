@@ -1790,6 +1790,12 @@ void togglefloating(const Arg *arg)
 	arrange(selmon);
 }
 
+void togglefullscr(const Arg *arg)
+{
+	if(selmon->sel)
+		setfullscreen(selmon->sel, !selmon->sel->isfullscreen);
+}
+
 /** Function to shift the current view to the left/right
  *
  * @param: "arg->i" stores the number of tags to shift right (positive value)
