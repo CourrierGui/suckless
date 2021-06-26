@@ -4,6 +4,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xlib-xcb.h>
 #include <xcb/res.h>
+#include <X11/Xresource.h>
 
 /* macros */
 #define BUTTONMASK              (ButtonPressMask|ButtonReleaseMask)
@@ -122,6 +123,19 @@ typedef struct {
 	int monitor;
 } Rule;
 
+/* Xresources preferences */
+enum resource_type {
+	STRING = 0,
+	INTEGER = 1,
+	FLOAT = 2
+};
+
+typedef struct {
+	char *name;
+	enum resource_type type;
+	void *dst;
+} ResourcePref;
+
 /* function declarations */
 void applyrules(Client *c);
 int applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact);
@@ -231,6 +245,8 @@ int xerrordummy(Display *dpy, XErrorEvent *ee);
 int xerrorstart(Display *dpy, XErrorEvent *ee);
 void xinitvisual();
 void zoom(const Arg *arg);
+void load_xresources(void);
+void resource_load(XrmDatabase db, char *name, enum resource_type rtype, void *dst);
 void shiftview(const Arg *arg);
 
 pid_t getparentprocess(pid_t p);
