@@ -2,6 +2,8 @@
 #define DWM_H
 
 #include <X11/Xlib.h>
+#include <X11/Xlib-xcb.h>
+#include <xcb/res.h>
 
 /* macros */
 #define BUTTONMASK              (ButtonPressMask|ButtonReleaseMask)
@@ -54,8 +56,8 @@ typedef struct {
 } Button;
 
 typedef struct Monitor Monitor;
-typedef struct Client Client;
-struct Client {
+
+typedef struct Client {
 	char name[256];
 	float mina, maxa;
 	int x, y, w, h;
@@ -63,12 +65,14 @@ struct Client {
 	int basew, baseh, incw, inch, maxw, maxh, minw, minh;
 	int bw, oldbw;
 	unsigned int tags;
-	int isfixed, isfloating, isurgent, neverfocus, oldstate, isfullscreen;
-	Client *next;
-	Client *snext;
+	int isfixed, isfloating, isurgent, neverfocus, oldstate, isfullscreen, isterminal, noswallow;
+	pid_t pid;
+	struct Client *next;
+	struct Client *snext;
+	struct Client *swallowing;
 	Monitor *mon;
 	Window win;
-};
+} Client;
 
 typedef struct {
 	unsigned int mod;
@@ -109,6 +113,8 @@ typedef struct {
 	const char *title;
 	unsigned int tags;
 	int isfloating;
+	int isterminal;
+	int noswallow;
 	int monitor;
 } Rule;
 
@@ -211,5 +217,11 @@ int xerrordummy(Display *dpy, XErrorEvent *ee);
 int xerrorstart(Display *dpy, XErrorEvent *ee);
 void xinitvisual();
 void zoom(const Arg *arg);
+
+pid_t getparentprocess(pid_t p);
+int isdescprocess(pid_t p, pid_t c);
+Client *swallowingclient(Window w);
+Client *termforwin(const Client *c);
+pid_t winpid(Window w);
 
 #endif
