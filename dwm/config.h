@@ -112,6 +112,7 @@ static const char *dmenucmd[] = {
     "-fn", dmenufont,
     "-nb", normbgcolor, "-nf", normfgcolor,
     "-sb", selbordercolor, "-sf", selfgcolor,
+    "-x", "10", "-y", "10",
     NULL
 };
 static const char *termcmd[]  = { "st", NULL };
