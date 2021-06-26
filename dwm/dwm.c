@@ -444,7 +444,8 @@ configure(Client *c)
 	XSendEvent(dpy, c->win, False, StructureNotifyMask, (XEvent *)&ce);
 }
 
-void configurenotify(XEvent *e) {
+void configurenotify(XEvent *e)
+{
 	Monitor *m;
 	Client *c;
 	XConfigureEvent *ev = &e->xconfigure;
@@ -470,7 +471,8 @@ void configurenotify(XEvent *e) {
 	}
 }
 
-void configurerequest(XEvent *e) {
+void configurerequest(XEvent *e)
+{
 	Client *c;
 	Monitor *m;
 	XConfigureRequestEvent *ev = &e->xconfigurerequest;
@@ -583,8 +585,7 @@ void detachstack(Client *c)
 	}
 }
 
-Monitor *
-dirtomon(int dir)
+Monitor *dirtomon(int dir)
 {
 	Monitor *m = NULL;
 
@@ -598,8 +599,9 @@ dirtomon(int dir)
 	return m;
 }
 
-void drawbar(Monitor *m) {
-	int x, w, tw = 0;
+void drawbar(Monitor *m)
+{
+	int x, w;
 	int boxs = drw->fonts->h / 9;
 	int boxw = drw->fonts->h / 6 + 2;
 	unsigned int i, occ = 0, urg = 0;
@@ -608,7 +610,7 @@ void drawbar(Monitor *m) {
 	/* draw status first so it can be overdrawn by tags later */
 	if (m == selmon) { /* status is only drawn on selected monitor */
 		drw_setscheme(drw, scheme[SchemeNorm]);
-		tw = TEXTW(stext) - lrpad + 2; /* 2px right padding */
+		sw = TEXTW(stext) - lrpad + 2; /* 2px right padding */
 		drw_text(drw, m->ww - sw - 2 * sp, 0, sw, bh, 0, stext, 0);
 	}
 
@@ -632,7 +634,7 @@ void drawbar(Monitor *m) {
 	drw_setscheme(drw, scheme[SchemeNorm]);
 	x = drw_text(drw, x, 0, w, bh, lrpad / 2, m->ltsymbol, 0);
 
-	if ((w = m->ww - tw - x) > bh) {
+	if ((w = m->ww - sw - x) > bh) {
 		if (m->sel) {
 			drw_setscheme(drw, scheme[m == selmon ? SchemeSel : SchemeNorm]);
 			drw_text(drw, x, 0, w - 2 * sp, bh, lrpad / 2, m->sel->name, 0);
