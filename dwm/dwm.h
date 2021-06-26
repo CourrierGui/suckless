@@ -94,6 +94,10 @@ struct Monitor {
 	int by;               /* bar geometry */
 	int mx, my, mw, mh;   /* screen size */
 	int wx, wy, ww, wh;   /* window area  */
+	int gappih;           /* horizontal gap between windows */
+	int gappiv;           /* vertical gap between windows */
+	int gappoh;           /* horizontal outer gaps */
+	int gappov;           /* vertical outer gaps */
 	unsigned int seltags;
 	unsigned int sellt;
 	unsigned int tagset[2];
@@ -181,6 +185,16 @@ void sendmon(Client *c, Monitor *m);
 void setclientstate(Client *c, long state);
 void setfocus(Client *c);
 void setfullscreen(Client *c, int fullscreen);
+void setgaps(int oh, int ov, int ih, int iv);
+void incrgaps(const Arg *arg);
+void incrigaps(const Arg *arg);
+void incrogaps(const Arg *arg);
+void incrohgaps(const Arg *arg);
+void incrovgaps(const Arg *arg);
+void incrihgaps(const Arg *arg);
+void incrivgaps(const Arg *arg);
+void togglegaps(const Arg *arg);
+void defaultgaps(const Arg *arg);
 void setlayout(const Arg *arg);
 void setmfact(const Arg *arg);
 void setup(void);
