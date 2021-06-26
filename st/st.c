@@ -42,6 +42,8 @@
 #define ISCONTROLC1(c)		(BETWEEN(c, 0x80, 0x9f))
 #define ISCONTROL(c)		(ISCONTROLC0(c) || ISCONTROLC1(c))
 #define ISDELIM(u)		(u && wcschr(worddelimiters, u))
+static inline int max(int a, int b) { return a > b ? a : b; }
+static inline int min(int a, int b) { return a < b ? a : b; }
 
 enum term_mode {
 	MODE_WRAP        = 1 << 0,
@@ -231,8 +233,24 @@ static const uchar utfmask[UTF_SIZ + 1] = {0xC0, 0x80, 0xE0, 0xF0, 0xF8};
 static const Rune utfmin[UTF_SIZ + 1] = {       0,    0,  0x80,  0x800,  0x10000};
 static const Rune utfmax[UTF_SIZ + 1] = {0x10FFFF, 0x7F, 0x7FF, 0xFFFF, 0x10FFFF};
 
-ssize_t
-xwrite(int fd, const char *s, size_t len)
+extern int const buffSize;
+int histOp, histMode, histOff, insertOff, altToggle;
+Line *buf = NULL;
+static TCursor c[3];
+
+static inline int rows()
+{
+	return IS_SET(MODE_ALTSCREEN) ? term.row : buffSize;
+}
+
+static inline int rangeY(int i)
+{
+	while (i < 0)
+		i += rows();
+	return i % rows();
+}
+
+ssize_t xwrite(int fd, const char *s, size_t len)
 {
 	size_t aux = len;
 	ssize_t r;
@@ -248,8 +266,65 @@ xwrite(int fd, const char *s, size_t len)
 	return aux;
 }
 
-void *
-xmalloc(size_t len)
+void historyOpToggle(int start, int paint)
+{
+	if ((!histOp == !(histOp + start)) && ((histOp += start) || 1)) return;
+	if (histMode && paint && (!IS_SET(MODE_ALTSCREEN) || altToggle)) draw();
+	tcursor(CURSOR_SAVE);
+	histOp += start;
+	if (histMode && altToggle) {
+		tswapscreen();
+		memset(term.dirty,0,sizeof(*term.dirty)*term.row);
+	}
+	tcursor(CURSOR_LOAD);
+	*(!IS_SET(MODE_ALTSCREEN)?&term.line:&term.alt)=&buf[histOp?histOff:insertOff];
+}
+
+void historyModeToggle(int start)
+{
+	if (!(histMode = (histOp = !!start))) { tfulldirt(); } else {
+		tcursor(CURSOR_SAVE);
+		histOp = 0;
+		histOff = insertOff;
+	}
+}
+
+int historyBufferScroll(int n)
+{
+	if (IS_SET(MODE_ALTSCREEN) || !n) return histOp;
+	int p=abs(n=(n<0) ? max(n,-term.row) : min(n,term.row)), r=term.row-p,
+	          s=sizeof(*term.dirty), *ptr=histOp?&histOff:&insertOff;
+	if (!histMode || histOp) tfulldirt(); else {
+		memmove(&term.dirty[-min(n,0)], &term.dirty[max(n,0)], s*r);
+		memset(&term.dirty[n>0 ? r : 0], 0, s * p);
+	}
+	term.line = &buf[*ptr = (buffSize+*ptr+n) % buffSize];
+  // Clear the new region exposed by the shift.
+	if (!histOp) tclearregion(0, n>0?r+1:0, term.col-1, n>0?term.row:p-1);
+	return 1;
+}
+
+int historyMove(int x, int y, int ly)
+{
+	historyOpToggle(1, 1);
+	y += ((term.c.x += x) < 0 ?term.c.x-term.col :term.c.x) / term.col;//< x
+	if ((term.c.x %= term.col) < 0) term.c.x += term.col;
+	if ((term.c.y += y) >= term.row) ly += term.c.y - term.row + 1;    //< y
+	else if (term.c.y < 0) ly += term.c.y;
+	term.c.y = MIN(MAX(term.c.y, 0), term.row - 1);
+	// Check if scroll is necessary / arrived at top / bottom of terminal history
+	int t = 0, b = 0, finTop = ly < 0, finBot = ly > 0;
+	if (!IS_SET(MODE_ALTSCREEN)) {
+		b=rangeY(insertOff-histOff), t=-rangeY(-term.row-(insertOff-histOff));
+		finBot = ly > b, finTop=histMode&&((-ly>-t));
+	}
+	if ((finTop || finBot) && (x||y)) term.c.x = finBot ? term.col-1 : 0;
+	historyBufferScroll(finBot ? b : (finTop ? t : ly));
+	historyOpToggle(-1, 1);
+	return finTop || finBot;
+}
+
+void *xmalloc(size_t len)
 {
 	void *p;
 
@@ -259,8 +334,7 @@ xmalloc(size_t len)
 	return p;
 }
 
-void *
-xrealloc(void *p, size_t len)
+void *xrealloc(void *p, size_t len)
 {
 	if ((p = realloc(p, len)) == NULL)
 		die("realloc: %s\n", strerror(errno));
@@ -268,8 +342,7 @@ xrealloc(void *p, size_t len)
 	return p;
 }
 
-char *
-xstrdup(const char *s)
+char *xstrdup(const char *s)
 {
 	char *p;
 
@@ -279,8 +352,7 @@ xstrdup(const char *s)
 	return p;
 }
 
-size_t
-utf8decode(const char *c, Rune *u, size_t clen)
+size_t utf8decode(const char *c, Rune *u, size_t clen)
 {
 	size_t i, j, len, type;
 	Rune udecoded;
@@ -304,8 +376,7 @@ utf8decode(const char *c, Rune *u, size_t clen)
 	return len;
 }
 
-Rune
-utf8decodebyte(char c, size_t *i)
+Rune utf8decodebyte(char c, size_t *i)
 {
 	for (*i = 0; *i < LEN(utfmask); ++(*i))
 		if (((uchar)c & utfmask[*i]) == utfbyte[*i])
@@ -314,8 +385,7 @@ utf8decodebyte(char c, size_t *i)
 	return 0;
 }
 
-size_t
-utf8encode(Rune u, char *c)
+size_t utf8encode(Rune u, char *c)
 {
 	size_t len, i;
 
@@ -332,14 +402,12 @@ utf8encode(Rune u, char *c)
 	return len;
 }
 
-char
-utf8encodebyte(Rune u, size_t i)
+char utf8encodebyte(Rune u, size_t i)
 {
 	return utfbyte[i] | (u & ~utfmask[i]);
 }
 
-size_t
-utf8validate(Rune *u, size_t i)
+size_t utf8validate(Rune *u, size_t i)
 {
 	if (!BETWEEN(*u, utfmin[i], utfmax[i]) || BETWEEN(*u, 0xD800, 0xDFFF))
 		*u = UTF_INVALID;
@@ -403,16 +471,14 @@ base64dec(const char *src)
 	return result;
 }
 
-void
-selinit(void)
+void selinit(void)
 {
 	sel.mode = SEL_IDLE;
 	sel.snap = 0;
 	sel.ob.x = -1;
 }
 
-int
-tlinelen(int y)
+int tlinelen(int y)
 {
 	int i = term.col;
 
@@ -425,8 +491,7 @@ tlinelen(int y)
 	return i;
 }
 
-void
-selstart(int col, int row, int snap)
+void selstart(int col, int row, int snap)
 {
 	selclear();
 	sel.mode = SEL_EMPTY;
@@ -442,8 +507,7 @@ selstart(int col, int row, int snap)
 	tsetdirt(sel.nb.y, sel.ne.y);
 }
 
-void
-selextend(int col, int row, int type, int done)
+void selextend(int col, int row, int type, int done)
 {
 	int oldey, oldex, oldsby, oldsey, oldtype;
 
@@ -465,14 +529,19 @@ selextend(int col, int row, int type, int done)
 	selnormalize();
 	sel.type = type;
 
+	if (histMode)
+		historyOpToggle(1, 1);
+
 	if (oldey != sel.oe.y || oldex != sel.oe.x || oldtype != sel.type || sel.mode == SEL_EMPTY)
 		tsetdirt(MIN(sel.nb.y, oldsby), MAX(sel.ne.y, oldsey));
+
+	if (histMode)
+		historyOpToggle(-1, 1);
 
 	sel.mode = done ? SEL_IDLE : SEL_READY;
 }
 
-void
-selnormalize(void)
+void selnormalize(void)
 {
 	int i;
 
@@ -499,8 +568,7 @@ selnormalize(void)
 		sel.ne.x = term.col - 1;
 }
 
-int
-selected(int x, int y)
+int selected(int x, int y)
 {
 	if (sel.mode == SEL_EMPTY || sel.ob.x == -1 ||
 			sel.alt != IS_SET(MODE_ALTSCREEN))
@@ -515,8 +583,7 @@ selected(int x, int y)
 	    && (y != sel.ne.y || x <= sel.ne.x);
 }
 
-void
-selsnap(int *x, int *y, int direction)
+void selsnap(int *x, int *y, int direction)
 {
 	int newx, newy, xt, yt;
 	int delim, prevdelim;
@@ -588,8 +655,7 @@ selsnap(int *x, int *y, int direction)
 	}
 }
 
-char *
-getsel(void)
+char *getsel(void)
 {
 	char *str, *ptr;
 	int y, bufsize, lastx, linelen;
@@ -597,6 +663,9 @@ getsel(void)
 
 	if (sel.ob.x == -1)
 		return NULL;
+
+	if (histMode)
+		historyOpToggle(1, 1);
 
 	bufsize = (term.col+1) * (sel.ne.y-sel.nb.y+1) * UTF_SIZ;
 	ptr = str = xmalloc(bufsize);
@@ -640,21 +709,29 @@ getsel(void)
 			*ptr++ = '\n';
 	}
 	*ptr = 0;
+
+	if (histMode)
+		historyOpToggle(-1, 1);
+
 	return str;
 }
 
-void
-selclear(void)
+void selclear(void)
 {
 	if (sel.ob.x == -1)
 		return;
 	sel.mode = SEL_IDLE;
 	sel.ob.x = -1;
+	if (histMode)
+		historyOpToggle(1, 1);
+
 	tsetdirt(sel.nb.y, sel.ne.y);
+
+	if (histMode)
+		historyOpToggle(-1, 1);
 }
 
-void
-die(const char *errstr, ...)
+void die(const char *errstr, ...)
 {
 	va_list ap;
 
@@ -978,8 +1055,7 @@ tsetdirt(int top, int bot)
 		term.dirty[i] = 1;
 }
 
-void
-tsetdirtattr(int attr)
+void tsetdirtattr(int attr)
 {
 	int i, j;
 
@@ -993,17 +1069,14 @@ tsetdirtattr(int attr)
 	}
 }
 
-void
-tfulldirt(void)
+void tfulldirt(void)
 {
 	tsetdirt(0, term.row-1);
 }
 
-void
-tcursor(int mode)
+void tcursor(int mode)
 {
-	static TCursor c[2];
-	int alt = IS_SET(MODE_ALTSCREEN);
+	int alt = (histOp) ? 0 : (IS_SET(MODE_ALTSCREEN) + 1);
 
 	if (mode == CURSOR_SAVE) {
 		c[alt] = term.c;
@@ -1013,8 +1086,7 @@ tcursor(int mode)
 	}
 }
 
-void
-treset(void)
+void treset(void)
 {
 	uint i;
 
@@ -1041,16 +1113,14 @@ treset(void)
 	}
 }
 
-void
-tnew(int col, int row)
+void tnew(int col, int row)
 {
 	term = (Term){ .c = { .attr = { .fg = defaultfg, .bg = defaultbg } } };
 	tresize(col, row);
 	treset();
 }
 
-void
-tswapscreen(void)
+void tswapscreen(void)
 {
 	Line *tmp = term.line;
 
@@ -1060,11 +1130,13 @@ tswapscreen(void)
 	tfulldirt();
 }
 
-void
-tscrolldown(int orig, int n)
+void tscrolldown(int orig, int n)
 {
 	int i;
 	Line temp;
+
+	if (!orig && historyBufferScroll(-n))
+		return;
 
 	LIMIT(n, 0, term.bot-orig+1);
 
@@ -1080,11 +1152,13 @@ tscrolldown(int orig, int n)
 	selscroll(orig, n);
 }
 
-void
-tscrollup(int orig, int n)
+void tscrollup(int orig, int n)
 {
 	int i;
 	Line temp;
+
+	if (!orig && historyBufferScroll(n))
+		return;
 
 	LIMIT(n, 0, term.bot-orig+1);
 
@@ -2471,14 +2545,16 @@ twrite(const char *buf, int buflen, int show_ctrl)
 	return n;
 }
 
-void
-tresize(int col, int row)
+void tresize(int col, int row)
 {
 	int i;
 	int minrow = MIN(row, term.row);
 	int mincol = MIN(col, term.col);
 	int *bp;
+	int const alt = IS_SET(MODE_ALTSCREEN), ini = buf == NULL;
 	TCursor c;
+
+	row = MIN(row, buffSize);
 
 	if (col < 1 || row < 1) {
 		fprintf(stderr,
@@ -2486,40 +2562,38 @@ tresize(int col, int row)
 		return;
 	}
 
+	if (alt)
+		tswapscreen();
+
 	/*
 	 * slide screen to keep cursor where we expect it -
 	 * tscrollup would work here, but we can optimize to
 	 * memmove because we're freeing the earlier lines
 	 */
 	for (i = 0; i <= term.c.y - row; i++) {
-		free(term.line[i]);
 		free(term.alt[i]);
 	}
 	/* ensure that both src and dst are not NULL */
 	if (i > 0) {
-		memmove(term.line, term.line + i, row * sizeof(Line));
 		memmove(term.alt, term.alt + i, row * sizeof(Line));
 	}
 	for (i += row; i < term.row; i++) {
-		free(term.line[i]);
 		free(term.alt[i]);
 	}
 
 	/* resize to new height */
-	term.line = xrealloc(term.line, row * sizeof(Line));
+	buf = xrealloc(buf, (buffSize + row) * sizeof(Line));
 	term.alt  = xrealloc(term.alt,  row * sizeof(Line));
 	term.dirty = xrealloc(term.dirty, row * sizeof(*term.dirty));
 	term.tabs = xrealloc(term.tabs, col * sizeof(*term.tabs));
 
 	/* resize each row to new width, zero-pad if needed */
 	for (i = 0; i < minrow; i++) {
-		term.line[i] = xrealloc(term.line[i], col * sizeof(Glyph));
 		term.alt[i]  = xrealloc(term.alt[i],  col * sizeof(Glyph));
 	}
 
 	/* allocate any new rows */
 	for (/* i = minrow */; i < row; i++) {
-		term.line[i] = xmalloc(col * sizeof(Glyph));
 		term.alt[i] = xmalloc(col * sizeof(Glyph));
 	}
 	if (col > term.col) {
@@ -2531,9 +2605,25 @@ tresize(int col, int row)
 		for (bp += tabspaces; bp < term.tabs + col; bp += tabspaces)
 			*bp = 1;
 	}
+
+	Glyph g = (Glyph) {
+		.bg=term.c.attr.bg,
+		.fg=term.c.attr.fg,
+		.u=' ', .mode=0
+	};
+	for (i = 0; i < buffSize; ++i) {
+		buf[i] = xrealloc(ini ? NULL : buf[i], col*sizeof(Glyph));
+		for (int j = ini ? 0 : term.col; j < col; ++j) buf[i][j] = g;
+	}
+	for (i = 0; i < row; ++i)
+		buf[buffSize + i] = buf[i];
+	term.line = &buf[*(histOp?&histOff:&insertOff) +=MAX(term.c.y-row+1,0)];
+
 	/* update terminal size */
 	term.col = col;
 	term.row = row;
+	if (alt)
+		tswapscreen();
 	/* reset scrolling region */
 	tsetscroll(0, row-1);
 	/* make use of the LIMIT in tmoveto */
@@ -2559,22 +2649,27 @@ resettitle(void)
 	xsettitle(NULL);
 }
 
-void
-drawregion(int x1, int y1, int x2, int y2)
+void drawregion(int x1, int y1, int x2, int y2)
 {
 	int y;
 
+	if (altToggle && histMode && !histOp)
+		memset(term.dirty, 0, sizeof(*term.dirty) * term.row);
+
+	int const o = !IS_SET(MODE_ALTSCREEN) && histMode && !histOp, h =rows();
+
 	for (y = y1; y < y2; y++) {
-		if (!term.dirty[y])
+		int const oy = o ? (y + insertOff - histOff + h) % h : y;
+
+		if (!BETWEEN(oy, 0, term.row-1) || !term.dirty[y])
 			continue;
 
-		term.dirty[y] = 0;
-		xdrawline(term.line[y], x1, y, x2);
+		xdrawline(term.line[y], x1, oy, x2);
 	}
+	memset(&term.dirty[y1], 0, sizeof(*term.dirty) * (y2 - y1));
 }
 
-void
-draw(void)
+void draw(void)
 {
 	int cx = term.c.x, ocx = term.ocx, ocy = term.ocy;
 
@@ -2590,8 +2685,9 @@ draw(void)
 		cx--;
 
 	drawregion(0, 0, term.col, term.row);
-	xdrawcursor(cx, term.c.y, term.line[term.c.y][cx],
-			term.ocx, term.ocy, term.line[term.ocy][term.ocx]);
+	if (!histMode)
+		xdrawcursor(cx, term.c.y, term.line[term.c.y][cx],
+					term.ocx, term.ocy, term.line[term.ocy][term.ocx]);
 	term.ocx = cx;
 	term.ocy = term.c.y;
 	xfinishdraw();
@@ -2599,9 +2695,16 @@ draw(void)
 		xximspot(term.ocx, term.ocy);
 }
 
-void
-redraw(void)
+void redraw(void)
 {
 	tfulldirt();
 	draw();
+}
+
+void historyQuit() { historyModeToggle(0); }
+
+void historyShiftY(Arg const *y) {
+	if (!histMode) historyModeToggle(1);
+	historyMove(0, 0, y->i);
+	if (insertOff == histOff) historyModeToggle(0);
 }
