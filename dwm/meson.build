@@ -5,7 +5,6 @@ sources = [
 version = '6.2'
 
 cc = meson.get_compiler('c')
-xrender = cc.find_library('Xrender', required : true)
 xcb = [
   cc.find_library('X11-xcb', required : true),
   cc.find_library('xcb', required : true),

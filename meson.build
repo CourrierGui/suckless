@@ -5,6 +5,9 @@ Xlib = dependency('X11', required : true)
 xft = dependency('xft', required : true)
 fontconfig = dependency('fontconfig', required : true)
 
+cc = meson.get_compiler('c')
+xrender = cc.find_library('Xrender', required : true)
+
 subdir('dwm')
 subdir('st')
 subdir('dmenu')
