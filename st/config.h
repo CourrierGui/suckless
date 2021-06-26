@@ -77,11 +77,11 @@ static unsigned int cursorthickness = 2;
  *    Bold affects lines thickness if boxdraw_bold is not 0. Italic is ignored.
  * 0: disable (render all U25XX glyphs normally from the font).
  */
-const int boxdraw = 0;
-const int boxdraw_bold = 0;
+const int boxdraw = 1;
+const int boxdraw_bold = 1;
 
 /* braille (U28XX):  1: render as adjacent "pixels",  0: use font */
-const int boxdraw_braille = 0;
+const int boxdraw_braille = 1;
 
 /*
  * bell volume. It must be a value between -100 and 100. Use 0 for disabling
@@ -224,7 +224,7 @@ static MouseShortcut mshortcuts[] = {
 
 /* Internal keyboard shortcuts. */
 #define MODKEY Mod1Mask
-#define TERMMOD (ControlMask|ShiftMask)
+#define TERMMOD (Mod1Mask|ShiftMask)
 
 static Shortcut shortcuts[] = {
 	/* mask                 keysym          function        argument */
@@ -232,18 +232,21 @@ static Shortcut shortcuts[] = {
 	{ ControlMask,          XK_Print,       toggleprinter,  {.i =  0} },
 	{ ShiftMask,            XK_Print,       printscreen,    {.i =  0} },
 	{ XK_ANY_MOD,           XK_Print,       printsel,       {.i =  0} },
-	{ MODKEY,               XK_j,           zoom,           {.f = +1} },
-	{ MODKEY,               XK_k,           zoom,           {.f = -1} },
+	{ TERMMOD,              XK_j,           zoom,           {.f = +1} },
+	{ TERMMOD,              XK_k,           zoom,           {.f = -1} },
+
+	{ MODKEY,               XK_J,           historyShiftY,  {.i =  1} },
+	{ MODKEY,               XK_K,           historyShiftY,  {.i = -1} },
+	{ MODKEY,               XK_i,           historyQuit,    {.i =  0} },
+	{ MODKEY,               XK_c,           normalMode,     {.i =  0} },
+
+	{ MODKEY,               XK_c,           clipcopy,       {.i =  0} },
+	{ MODKEY,               XK_v,           clippaste,      {.i =  0} },
+
 	{ TERMMOD,              XK_Home,        zoomreset,      {.f =  0} },
-	{ TERMMOD,              XK_C,           clipcopy,       {.i =  0} },
-	{ TERMMOD,              XK_V,           clippaste,      {.i =  0} },
 	{ TERMMOD,              XK_Y,           selpaste,       {.i =  0} },
 	{ ShiftMask,            XK_Insert,      selpaste,       {.i =  0} },
 	{ TERMMOD,              XK_Num_Lock,    numlock,        {.i =  0} },
-	{ MODKEY,               XK_i,           historyQuit,    {.i =  0} },
-	{ MODKEY|ShiftMask,     XK_J,           historyShiftY,  {.i =  1} },
-	{ MODKEY|ShiftMask,     XK_K,           historyShiftY,  {.i = -1} },
-	{ MODKEY,               XK_c,           normalMode,     {.i =  0} },
 };
 
 /*
