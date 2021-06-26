@@ -1191,8 +1191,7 @@ tmoveto(int x, int y)
 	term.c.y = LIMIT(y, miny, maxy);
 }
 
-void
-tsetchar(Rune u, const Glyph *attr, int x, int y)
+void tsetchar(Rune u, const Glyph *attr, int x, int y)
 {
 	static const char *vt100_0[62] = { /* 0x41 - 0x7e */
 		"↑", "↓", "→", "←", "█", "▚", "☃", /* A - G */
@@ -1225,6 +1224,9 @@ tsetchar(Rune u, const Glyph *attr, int x, int y)
 	term.dirty[y] = 1;
 	term.line[y][x] = *attr;
 	term.line[y][x].u = u;
+
+	if (isboxdraw(u))
+		term.line[y][x].mode |= ATTR_BOXDRAW;
 }
 
 void tclearregion(int x1, int y1, int x2, int y2)

@@ -1,6 +1,6 @@
 sources = [
   'arg.h', 'config.h', 'st.c', 'st.h', 'win.h', 'x.c',
-  'hb.c', 'hb.h',
+  'hb.c', 'hb.h', 'boxdraw.c', 'boxdraw_data.h'
 ]
 
 version = '0.8.4'
