@@ -2,7 +2,11 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#define OPAQUE                  0xffU
+#include <X11/Xlib.h>
+#include <X11/keysym.h>
+#include "dwm.h"
+
+#define OPAQUE 0xffU
 
 /* appearance */
 static const unsigned int borderpx  = 1;        /* border pixel of windows */

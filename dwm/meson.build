@@ -1,5 +1,5 @@
 sources = [
-  'dwm.c', 'drw.c', 'drw.h', 'util.c', 'util.h'
+  'dwm.c', 'dwm.h', 'drw.c', 'drw.h', 'util.c', 'util.h'
 ]
 
 version = '6.2'
