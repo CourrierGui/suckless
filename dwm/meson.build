@@ -16,7 +16,7 @@ executable('dwm', sources, install : true,
            dependencies : [ freetype, Xlib, xft, fontconfig, xrender, xcb ],
            c_args : [
              '-DVERSION="' + version + '"',
-             '-std=c99', '-Wno-deprecated-declarations'
+             '-std=gnu99', '-Wno-deprecated-declarations'
            ]
 )
 

@@ -48,6 +48,9 @@
 /* variables */
 static const char broken[] = "broken";
 static char stext[256];
+static char rawstext[256];
+static int dwmblockssig;
+pid_t dwmblockspid = 0;
 static int scanner;
 static char rawstext[256];
 static int statuscmdn;
@@ -325,7 +328,7 @@ void buttonpress(XEvent *e) {
 			char ch;
 
 			click = ClkStatusText;
-			statuscmdn = 0;
+			dwmblockssig = 0;
 			while (text[++i]) {
 				if ((unsigned char)text[i] < ' ') {
 					ch = text[i];
@@ -335,11 +338,12 @@ void buttonpress(XEvent *e) {
 					text += i+1;
 					i = -1;
 					if (x >= ev->x) break;
-					if (ch <= LENGTH(statuscmds)) statuscmdn = ch - 1;
+					dwmblockssig = ch;
 				}
 			}
-		} else
+		} else {
 			click = ClkWinTitle;
+		}
 	} else if ((c = wintoclient(ev->window))) {
 		focus(c);
 		restack(selmon);
@@ -522,7 +526,8 @@ void configurerequest(XEvent *e)
 	XSync(dpy, False);
 }
 
-void copyvalidchars(char *text, char *rawtext) {
+void copyvalidchars(char *text, char *rawtext)
+{
 	int i = -1, j = 0;
 
 	while(rawtext[++i]) {
@@ -735,7 +740,8 @@ focusmon(const Arg *arg)
 	focus(NULL);
 }
 
-void focusstack(const Arg *arg) {
+void focusstack(const Arg *arg)
+{
 	int i = stackpos(arg);
 	Client *c, *p;
 
@@ -749,8 +755,7 @@ void focusstack(const Arg *arg) {
 	restack(selmon);
 }
 
-Atom
-getatomprop(Client *c, Atom prop)
+Atom getatomprop(Client *c, Atom prop)
 {
 	int di;
 	unsigned long dl;
@@ -765,8 +770,18 @@ getatomprop(Client *c, Atom prop)
 	return atom;
 }
 
-int
-getrootptr(int *x, int *y)
+int getdwmblockspid()
+{
+	char buf[16];
+	FILE *fp = popen("pidof -s dwmblocks", "r");
+	fgets(buf, sizeof(buf), fp);
+	pid_t pid = strtoul(buf, NULL, 10);
+	pclose(fp);
+	dwmblockspid = pid;
+	return pid != 0 ? 0 : -1;
+}
+
+int getrootptr(int *x, int *y)
 {
 	int di;
 	unsigned int dui;
@@ -775,8 +790,7 @@ getrootptr(int *x, int *y)
 	return XQueryPointer(dpy, root, &dummy, &dummy, x, y, &di, &di, &dui);
 }
 
-long
-getstate(Window w)
+long getstate(Window w)
 {
 	int format;
 	long result = -1;
@@ -1672,6 +1686,22 @@ void sigchld(int unused) {
 	while (0 < waitpid(-1, NULL, WNOHANG));
 }
 
+void sigdwmblocks(const Arg *arg)
+{
+	union sigval sv;
+	sv.sival_int = (dwmblockssig << 8) | arg->i;
+	if (!dwmblockspid)
+		if (getdwmblockspid() == -1)
+			return;
+
+	if (sigqueue(dwmblockspid, SIGUSR1, sv) == -1) {
+		if (errno == ESRCH) {
+			if (!getdwmblockspid())
+				sigqueue(dwmblockspid, SIGUSR1, sv);
+		}
+	}
+}
+
 void spawn(const Arg *arg) {
 	if (arg->v == dmenucmd) {
 		dmenumon[0] = '0' + selmon->num;
@@ -2094,7 +2124,8 @@ updatesizehints(Client *c)
 	c->isfixed = (c->maxw && c->maxh && c->maxw == c->minw && c->maxh == c->minh);
 }
 
-void updatestatus(void) {
+void updatestatus(void)
+{
 	if (!gettextprop(root, XA_WM_NAME, rawstext, sizeof(rawstext)))
 		strcpy(stext, "dwm-"VERSION);
 	else
@@ -2103,14 +2134,16 @@ void updatestatus(void) {
 	drawbar(selmon);
 }
 
-void updatetitle(Client *c) {
+void updatetitle(Client *c)
+{
 	if (!gettextprop(c->win, netatom[NetWMName], c->name, sizeof c->name))
 		gettextprop(c->win, XA_WM_NAME, c->name, sizeof c->name);
 	if (c->name[0] == '\0') /* hack to mark broken clients */
 		strcpy(c->name, broken);
 }
 
-void updatewindowtype(Client *c) {
+void updatewindowtype(Client *c)
+{
 	Atom state = getatomprop(c, netatom[NetWMState]);
 	Atom wtype = getatomprop(c, netatom[NetWMWindowType]);
 
@@ -2120,7 +2153,8 @@ void updatewindowtype(Client *c) {
 		c->isfloating = 1;
 }
 
-void updatewmhints(Client *c) {
+void updatewmhints(Client *c)
+{
 	XWMHints *wmh;
 
 	if ((wmh = XGetWMHints(dpy, c->win))) {
