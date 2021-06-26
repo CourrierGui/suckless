@@ -231,6 +231,7 @@ int xerrordummy(Display *dpy, XErrorEvent *ee);
 int xerrorstart(Display *dpy, XErrorEvent *ee);
 void xinitvisual();
 void zoom(const Arg *arg);
+void shiftview(const Arg *arg);
 
 pid_t getparentprocess(pid_t p);
 int isdescprocess(pid_t p, pid_t c);
