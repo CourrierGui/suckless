@@ -161,7 +161,8 @@ static void xhints(void);
 static int xloadcolor(int, const char *, Color *);
 static int xloadfont(Font *, FcPattern *);
 static void xloadfonts(const char *, double);
-static void xloadsparefont();
+static int xloadsparefont(FcPattern *, int);
+static void xloadsparefonts(void);
 static void xunloadfont(Font *);
 static void xunloadfonts(void);
 static void xsetenv(void);
@@ -291,14 +292,12 @@ selpaste(const Arg *dummy)
 			xw.win, CurrentTime);
 }
 
-void
-numlock(const Arg *dummy)
+void numlock(const Arg *dummy)
 {
 	win.mode ^= MODE_NUMLOCK;
 }
 
-void
-zoom(const Arg *arg)
+void zoom(const Arg *arg)
 {
 	Arg larg;
 
@@ -306,19 +305,17 @@ zoom(const Arg *arg)
 	zoomabs(&larg);
 }
 
-void
-zoomabs(const Arg *arg)
+void zoomabs(const Arg *arg)
 {
 	xunloadfonts();
 	xloadfonts(usedfont, arg->f);
-	xloadsparefont();
+	xloadsparefonts();
 	cresize(0, 0);
 	redraw();
 	xhints();
 }
 
-void
-zoomreset(const Arg *arg)
+void zoomreset(const Arg *arg)
 {
 	Arg larg;
 
@@ -328,8 +325,7 @@ zoomreset(const Arg *arg)
 	}
 }
 
-void
-ttysend(const Arg *arg)
+void ttysend(const Arg *arg)
 {
 	ttywrite(arg->s, strlen(arg->s), 1);
 }
@@ -1044,69 +1040,96 @@ xloadfonts(const char *fontstr, double fontsize)
 	FcPatternDestroy(pattern);
 }
 
-
-void
-xloadsparefont()
+int xloadsparefont(FcPattern *pattern, int flags)
 {
-	FcPattern *fontpattern, *match;
+	FcPattern *match;
 	FcResult result;
+	
+	match = FcFontMatch(NULL, pattern, &result);
+	if (!match) {
+		return 1;
+	}
 
-	/* add font2 to font cache as first 4 entries */
-	if ( font2[0] == '-' )
-		fontpattern = XftXlfdParse(font2, False, False);
-	else
-		fontpattern = FcNameParse((FcChar8 *)font2);
-	if ( fontpattern ) {
-		/* Allocate memory for the new cache entries. */
-		frccap += 4;
+	if (!(frc[frclen].font = XftFontOpenPattern(xw.dpy, match))) {
+		FcPatternDestroy(match);
+		return 1;
+	}
+
+	frc[frclen].flags = flags;
+	/* Believe U+0000 glyph will present in each default font */
+	frc[frclen].unicodep = 0;
+	frclen++;
+
+	return 0;
+}
+
+void xloadsparefonts(void)
+{
+	FcPattern *pattern;
+	double sizeshift, fontval;
+	int fc;
+	char **fp;
+
+	if (frclen != 0)
+		die("can't embed spare fonts. cache isn't empty");
+
+	/* Calculate count of spare fonts */
+	fc = sizeof(font2) / sizeof(*font2);
+	if (fc == 0)
+		return;
+
+	/* Allocate memory for cache entries. */
+	if (frccap < 4 * fc) {
+		frccap += 4 * fc - frccap;
 		frc = xrealloc(frc, frccap * sizeof(Fontcache));
-		/* add Normal */
-		match = FcFontMatch(NULL, fontpattern, &result);
-		if ( match ) 
-			frc[frclen].font = XftFontOpenPattern(xw.dpy, match);
-		if ( frc[frclen].font ) {
-			frc[frclen].flags = FRC_NORMAL;
-			frclen++;
-		} else {
-			FcPatternDestroy(match);
+	}
+
+	for (fp = font2; fp - font2 < fc; ++fp) {
+
+		if (**fp == '-')
+			pattern = XftXlfdParse(*fp, False, False);
+		else
+			pattern = FcNameParse((FcChar8 *)*fp);
+	
+		if (!pattern)
+			die("can't open spare font %s\n", *fp);
+
+		if (defaultfontsize > 0) {
+			sizeshift = usedfontsize - defaultfontsize;
+			if (sizeshift != 0 &&
+					FcPatternGetDouble(pattern, FC_PIXEL_SIZE, 0, &fontval) ==
+					FcResultMatch) {	
+				fontval += sizeshift;
+				FcPatternDel(pattern, FC_PIXEL_SIZE);
+				FcPatternDel(pattern, FC_SIZE);
+				FcPatternAddDouble(pattern, FC_PIXEL_SIZE, fontval);
+			}
 		}
-		/* add Italic */
-		FcPatternDel(fontpattern, FC_SLANT);
-		FcPatternAddInteger(fontpattern, FC_SLANT, FC_SLANT_ITALIC);
-		match = FcFontMatch(NULL, fontpattern, &result);
-		if ( match )
-			frc[frclen].font = XftFontOpenPattern(xw.dpy, match);
-		if ( frc[frclen].font ) {
-			frc[frclen].flags = FRC_ITALIC;
-			frclen++;
-		} else {
-			FcPatternDestroy(match);
-		}
-		/* add Italic Bold */
-		FcPatternDel(fontpattern, FC_WEIGHT);
-		FcPatternAddInteger(fontpattern, FC_WEIGHT, FC_WEIGHT_BOLD);
-		match = FcFontMatch(NULL, fontpattern, &result);
-		if ( match )
-			frc[frclen].font = XftFontOpenPattern(xw.dpy, match);
-		if ( frc[frclen].font ) {
-			frc[frclen].flags = FRC_ITALICBOLD;
-			frclen++;
-		} else {
-			FcPatternDestroy(match);
-		}
-		/* add Bold */
-		FcPatternDel(fontpattern, FC_SLANT);
-		FcPatternAddInteger(fontpattern, FC_SLANT, FC_SLANT_ROMAN);
-		match = FcFontMatch(NULL, fontpattern, &result);
-		if ( match )
-			frc[frclen].font = XftFontOpenPattern(xw.dpy, match);
-		if ( frc[frclen].font ) {
-			frc[frclen].flags = FRC_BOLD;
-			frclen++;
-		} else{
-			FcPatternDestroy(match);
-		}
-		FcPatternDestroy(fontpattern);
+	
+		FcPatternAddBool(pattern, FC_SCALABLE, 1);
+	
+		FcConfigSubstitute(NULL, pattern, FcMatchPattern);
+		XftDefaultSubstitute(xw.dpy, xw.scr, pattern);
+	
+		if (xloadsparefont(pattern, FRC_NORMAL))
+			die("can't open spare font %s\n", *fp);
+	
+		FcPatternDel(pattern, FC_SLANT);
+		FcPatternAddInteger(pattern, FC_SLANT, FC_SLANT_ITALIC);
+		if (xloadsparefont(pattern, FRC_ITALIC))
+			die("can't open spare font %s\n", *fp);
+			
+		FcPatternDel(pattern, FC_WEIGHT);
+		FcPatternAddInteger(pattern, FC_WEIGHT, FC_WEIGHT_BOLD);
+		if (xloadsparefont(pattern, FRC_ITALICBOLD))
+			die("can't open spare font %s\n", *fp);
+	
+		FcPatternDel(pattern, FC_SLANT);
+		FcPatternAddInteger(pattern, FC_SLANT, FC_SLANT_ROMAN);
+		if (xloadsparefont(pattern, FRC_BOLD))
+			die("can't open spare font %s\n", *fp);
+	
+		FcPatternDestroy(pattern);
 	}
 }
 
@@ -1219,7 +1242,7 @@ void xinit(int cols, int rows)
 	xloadfonts(usedfont, 0);
 
 	/* spare font (font2) */
-	xloadsparefont();
+	xloadsparefonts();
 
 	/* colors */
 	xw.cmap = XCreateColormap(xw.dpy, parent, xw.vis, None);
