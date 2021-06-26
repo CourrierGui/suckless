@@ -19,6 +19,7 @@ char *argv0;
 #include "arg.h"
 #include "st.h"
 #include "win.h"
+#include "normalMode.h"
 
 /* types used in config.h */
 typedef struct {
@@ -257,13 +258,13 @@ static char *opt_title = NULL;
 
 static int oldbutton = 3; /* button event on startup: 3 = release */
 
-void
-clipcopy(const Arg *dummy)
+void clipcopy(const Arg *dummy)
 {
 	Atom clipboard;
 
 	free(xsel.clipboard);
 	xsel.clipboard = NULL;
+	xsetsel(getsel());
 
 	if (xsel.primary != NULL) {
 		xsel.clipboard = xstrdup(xsel.primary);
@@ -272,8 +273,7 @@ clipcopy(const Arg *dummy)
 	}
 }
 
-void
-clippaste(const Arg *dummy)
+void clippaste(const Arg *dummy)
 {
 	Atom clipboard;
 
@@ -462,11 +462,9 @@ mouseaction(XEvent *e, uint release)
 	return 0;
 }
 
-void
-bpress(XEvent *e)
+void bpress(XEvent *e)
 {
 	struct timespec now;
-	int snap;
 
 	if (IS_SET(MODE_MOUSE) && !(e->xbutton.state & forcemousemod)) {
 		mousereport(e);
@@ -482,22 +480,38 @@ bpress(XEvent *e)
 		 * snapping behaviour is exposed.
 		 */
 		clock_gettime(CLOCK_MONOTONIC, &now);
-		if (TIMEDIFF(now, xsel.tclick2) <= tripleclicktimeout) {
-			snap = SNAP_LINE;
-		} else if (TIMEDIFF(now, xsel.tclick1) <= doubleclicktimeout) {
-			snap = SNAP_WORD;
+		int const tripleClick = TIMEDIFF(now, xsel.tclick2) <= tripleclicktimeout,
+		doubleClick = TIMEDIFF(now, xsel.tclick1) <= doubleclicktimeout;
+		if ((mouseYank || mouseSelect) && (tripleClick || doubleClick)) {
+			if (!IS_SET(MODE_NORMAL)) normalMode();
+			historyOpToggle(1, 1);
+			tmoveto(evcol(e), evrow(e));
+			if (tripleClick) {
+				if (mouseYank) pressKeys("dVy", 3);
+				if (mouseSelect) pressKeys("dV", 2);
+			} else if (doubleClick) {
+				if (mouseYank) pressKeys("dyiW", 4);
+				if (mouseSelect) {
+					tmoveto(evcol(e), evrow(e));
+					pressKeys("viW", 3);
+				}
+			}
+			historyOpToggle(-1, 1);
 		} else {
-			snap = 0;
+			if (!IS_SET(MODE_NORMAL)) selstart(evcol(e), evrow(e), 0);
+			else {
+				historyOpToggle(1, 1);
+				tmoveto(evcol(e), evrow(e));
+				pressKeys("v", 1);
+				historyOpToggle(-1, 1);
+			}
 		}
 		xsel.tclick2 = xsel.tclick1;
 		xsel.tclick1 = now;
-
-		selstart(evcol(e), evrow(e), snap);
 	}
 }
 
-void
-propnotify(XEvent *e)
+void propnotify(XEvent *e)
 {
 	XPropertyEvent *xpev;
 	Atom clipboard = XInternAtom(xw.dpy, "CLIPBOARD", 0);
@@ -510,8 +524,7 @@ propnotify(XEvent *e)
 	}
 }
 
-void
-selnotify(XEvent *e)
+void selnotify(XEvent *e)
 {
 	ulong nitems, ofs, rem;
 	int format;
@@ -667,8 +680,7 @@ selrequest(XEvent *e)
 		fprintf(stderr, "Error sending SelectionNotify event\n");
 }
 
-void
-setsel(char *str, Time t)
+void setsel(char *str, Time t)
 {
 	if (!str)
 		return;
@@ -681,14 +693,12 @@ setsel(char *str, Time t)
 		selclear();
 }
 
-void
-xsetsel(char *str)
+void xsetsel(char *str)
 {
 	setsel(str, CurrentTime);
 }
 
-void
-brelease(XEvent *e)
+void brelease(XEvent *e)
 {
 	if (IS_SET(MODE_MOUSE) && !(e->xbutton.state & forcemousemod)) {
 		mousereport(e);
@@ -697,12 +707,10 @@ brelease(XEvent *e)
 
 	if (mouseaction(e, 1))
 		return;
-	if (e->xbutton.button == Button1)
-		mousesel(e, 1);
+	if (e->xbutton.button == Button1 && !IS_SET(MODE_NORMAL)) mousesel(e, 1);
 }
 
-void
-bmotion(XEvent *e)
+void bmotion(XEvent *e)
 {
 	if (IS_SET(MODE_MOUSE) && !(e->xbutton.state & forcemousemod)) {
 		mousereport(e);
@@ -712,8 +720,7 @@ bmotion(XEvent *e)
 	mousesel(e, 0);
 }
 
-void
-cresize(int width, int height)
+void cresize(int width, int height)
 {
 	int col, row;
 
@@ -777,6 +784,8 @@ xloadcolor(int i, const char *name, Color *ncolor)
 
 	return XftColorAllocName(xw.dpy, xw.vis, xw.cmap, name, ncolor);
 }
+
+void normalMode() { historyModeToggle((win.mode ^=MODE_NORMAL) & MODE_NORMAL); }
 
 void
 xloadcols(void)
@@ -1299,8 +1308,7 @@ xinit(int cols, int rows)
 		xsel.xtarget = XA_STRING;
 }
 
-int
-xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x, int y)
+int xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x, int y)
 {
 	float winx = borderpx + x * win.cw, winy = borderpx + y * win.ch, xp, yp;
 	ushort mode, prevmode = USHRT_MAX;
@@ -1317,8 +1325,10 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
 
 	for (i = 0, xp = winx, yp = winy + font->ascent; i < len; ++i) {
 		/* Fetch rune and mode for current glyph. */
-		rune = glyphs[i].u;
-		mode = glyphs[i].mode;
+		Glyph g = glyphs[i];
+		historyOverlay(x+i, y, &g);
+		rune = g.u;
+		mode = g.mode;
 
 		/* Skip dummy wide-character spacing. */
 		if (mode == ATTR_WDUMMY)
@@ -1703,8 +1713,7 @@ xstartdraw(void)
 	return IS_SET(MODE_VISIBLE);
 }
 
-void
-xdrawline(Line line, int x1, int y1, int x2)
+void xdrawline(Line line, int x1, int y1, int x2)
 {
 	int i, x, ox, numspecs;
 	Glyph base, new;
@@ -1714,6 +1723,7 @@ xdrawline(Line line, int x1, int y1, int x2)
 	i = ox = 0;
 	for (x = x1; x < x2 && i < numspecs; x++) {
 		new = line[x];
+		historyOverlay(x, y1, &new);
 		if (new.mode == ATTR_WDUMMY)
 			continue;
 		if (selected(x, y1))
@@ -1887,8 +1897,7 @@ kmap(KeySym k, uint state)
 	return NULL;
 }
 
-void
-kpress(XEvent *ev)
+void kpress(XEvent *ev)
 {
 	XKeyEvent *e = &ev->xkey;
 	KeySym ksym;
@@ -1905,6 +1914,13 @@ kpress(XEvent *ev)
 		len = XmbLookupString(xw.ime.xic, e, buf, sizeof buf, &ksym, &status);
 	else
 		len = XLookupString(e, buf, sizeof buf, &ksym, NULL);
+
+	if (IS_SET(MODE_NORMAL)) {
+		if (kPressHist(buf, len, match(ControlMask, e->state), &ksym) == finish)
+            normalMode();
+		return;
+	}
+
 	/* 1. shortcuts */
 	for (bp = shortcuts; bp < shortcuts + LEN(shortcuts); bp++) {
 		if (ksym == bp->keysym && match(bp->mod, e->state)) {
