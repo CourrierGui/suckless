@@ -41,9 +41,9 @@
 #endif /* XINERAMA */
 #include <X11/Xft/Xft.h>
 
-#include "drw.h"
 #include "dwm.h"
 #include <sl-utils.h>
+#include <sl-draw.h>
 
 /* variables */
 static const char broken[] = "broken";

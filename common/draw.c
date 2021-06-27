@@ -5,8 +5,8 @@
 #include <X11/Xlib.h>
 #include <X11/Xft/Xft.h>
 
-#include "drw.h"
-#include <sl-utils.h>
+#include "sl-draw.h"
+#include "sl-utils.h"
 
 #define UTF_INVALID 0xFFFD
 #define UTF_SIZ     4

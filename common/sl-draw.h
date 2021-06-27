@@ -1,6 +1,5 @@
 /* See LICENSE file for copyright and license details. */
-#ifndef DRW_H
-#define DRW_H
+#pragma once
 
 #include <X11/Xlib.h>
 #include <X11/Xft/Xft.h>
@@ -17,7 +16,11 @@ typedef struct Fnt {
 	struct Fnt *next;
 } Fnt;
 
-enum { ColFg, ColBg, ColBorder }; /* Clr scheme index */
+enum { /* Clr scheme index */
+    ColFg,
+    ColBg,
+    ColBorder
+};
 typedef XftColor Clr;
 
 typedef struct {
@@ -37,7 +40,6 @@ typedef struct {
 /* Drawable abstraction */
 Drw *drw_create(Display *dpy, int screen, Window win, unsigned int w, unsigned int h,
                 Visual *visual, unsigned int depth, Colormap cmap);
- void drw_resize(Drw *drw, unsigned int w, unsigned int h);
 void drw_resize(Drw *drw, unsigned int w, unsigned int h);
 void drw_free(Drw *drw);
 
@@ -67,5 +69,3 @@ int drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h,
 
 /* Map functions */
 void drw_map(Drw *drw, Window win, int x, int y, unsigned int w, unsigned int h);
-
-#endif
