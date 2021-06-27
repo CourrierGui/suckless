@@ -10,7 +10,7 @@ static const char *fonts[] = {
 	"JoyPixels:pixelsize=12:antialias=true:autohint=true"
 };
 static const char *prompt      = NULL;      /* -p  option; prompt to the left of input field */
-static const char *colors[SchemeLast][2] = {
+static char *colors[SchemeLast][2] = {
 	/*     fg         bg       */
 	[SchemeNorm]          = { "#bbbbbb", "#222222" },
 	[SchemeSel]           = { "#eeeeee", "#005577" },

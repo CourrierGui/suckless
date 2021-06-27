@@ -19,7 +19,7 @@
 #endif
 #include <X11/Xft/Xft.h>
 
-#include "drw.h"
+#include <sl-draw.h>
 #include <sl-utils.h>
 
 /* macros */
