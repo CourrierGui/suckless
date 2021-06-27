@@ -4,5 +4,5 @@ sources = [
 ]
 
 common_headers = include_directories('.')
-common_lib = library('common', sources, dependencies : [ Xlib, xft, freetype, fontconfig ])
+common_lib = static_library('common', sources, dependencies : [ Xlib, xft, freetype, fontconfig ])
 common_dep = declare_dependency(link_with : common_lib, include_directories : common_headers)
