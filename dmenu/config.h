@@ -9,7 +9,9 @@ static const char *fonts[] = {
 	"Source Code Pro:size=12",
 	"JoyPixels:pixelsize=12:antialias=true:autohint=true"
 };
-static const char *prompt      = NULL;      /* -p  option; prompt to the left of input field */
+static const char *prompt      = NULL; /* -p  option; prompt to the left of input field */
+static const char *dynamic     = NULL; /* -dy option; dynamic command to run on input change */
+
 static const char *colors[SchemeLast][2] = {
 	/*     fg         bg       */
 	[SchemeNorm]          = { "#bbbbbb", "#222222" },
