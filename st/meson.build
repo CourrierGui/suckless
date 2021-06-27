@@ -6,11 +6,8 @@ sources = [
 version = '0.8.4'
 
 cc = meson.get_compiler('c')
-# ceil
-m_dep = cc.find_library('m', required : true)
 # openpty
 util_dep = cc.find_library('util', required : true)
-
 harfbuzz = dependency('harfbuzz', required : true)
 
 executable('st', sources, install : true,

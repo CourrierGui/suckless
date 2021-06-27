@@ -7,6 +7,8 @@ fontconfig = dependency('fontconfig', required : true)
 
 cc = meson.get_compiler('c')
 xrender = cc.find_library('Xrender', required : true)
+m_dep = cc.find_library('m', required : true)
+
 
 subdir('dwm')
 subdir('st')

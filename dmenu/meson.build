@@ -5,7 +5,7 @@ sources = [
 version = '5.0'
 
 executable('dmenu', sources, install : true,
-           dependencies : [ freetype, Xlib, xft, fontconfig, xrender ],
+           dependencies : [ freetype, Xlib, xft, fontconfig, xrender, m_dep ],
            c_args : [ '-DVERSION="' + version + '"', '-std=gnu99' ]
 )
 
