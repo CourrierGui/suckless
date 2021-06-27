@@ -49,7 +49,7 @@ struct item {
 };
 
 typedef struct {
-	FILE  *fp;     /* pointer to the history file */
+	FILE  *fp;    /* pointer to the history file */
 	char **items; /* names of the items in the history */
 	size_t size;  /* number of items in the history */
 	size_t pos;   /* position of the cursor in the history */
@@ -482,17 +482,16 @@ static void loadhistory(char *filename)
 	char *line;
 
 	history.fp = fopen(filename, "r");
-	if (!history.fp) {
+	if (!history.fp)
 		return;
-	}
 
 	for (;;) {
 		line = NULL;
 		llen = 0;
 		if (-1 == getline(&line, &llen, history.fp)) {
-			if (ferror(history.fp)) {
+			if (ferror(history.fp))
 				die("failed to read history");
-			}
+
 			free(line);
 			break;
 		}
@@ -519,9 +518,8 @@ static void navhistory(int dir)
 	if (!history.items || history.pos + 1 == 0)
 		return;
 
-	if (history.size == history.pos) {
+	if (history.size == history.pos)
 		strncpy(def, text, sizeof(def));
-	}
 
 	switch(dir) {
 	case 1:
@@ -533,14 +531,12 @@ static void navhistory(int dir)
 		}
 		break;
 	case -1:
-		if (history.pos > 0) {
+		if (history.pos > 0)
 			p = history.items[--history.pos];
-		}
 		break;
 	}
-	if (p == NULL) {
+	if (p == NULL)
 		return;
-	}
 
 	len = MIN(strlen(p), BUFSIZ - 1);
 	strncpy(text, p, len);
