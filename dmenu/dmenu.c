@@ -8,6 +8,7 @@
 #include <strings.h>
 #include <time.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
@@ -47,6 +48,13 @@ struct item {
 	double distance;
 };
 
+typedef struct {
+	FILE  *fp;     /* pointer to the history file */
+	char **items; /* names of the items in the history */
+	size_t size;  /* number of items in the history */
+	size_t pos;   /* position of the cursor in the history */
+} History;
+
 static char numbers[NUMBERSBUFSIZE] = "";
 static char text[BUFSIZ] = "";
 static char *embed;
@@ -57,7 +65,7 @@ static unsigned int dmw = 0; /* make dmenu this wide */
 static int inputw = 0, promptw;
 static int lrpad; /* sum of left and right padding */
 static size_t cursor;
-static struct item *items = NULL;
+static struct item *items = NULL, *backup_items;
 static struct item *matches, *matchend;
 static struct item *prev, *curr, *next, *sel;
 static int mon = -1, screen;
@@ -69,6 +77,7 @@ static XIC xic;
 
 static Drw *drw;
 static Clr *scheme[SchemeLast];
+static History history;
 
 static int useargb = 0;
 static Visual *visual;
@@ -429,8 +438,7 @@ static void match(void)
 	calcoffsets();
 }
 
-static void
-insert(const char *str, ssize_t n)
+static void insert(const char *str, ssize_t n)
 {
 	if (strlen(text) + n > sizeof text - 1)
 		return;
@@ -442,8 +450,7 @@ insert(const char *str, ssize_t n)
 	match();
 }
 
-static size_t
-nextrune(int inc)
+static size_t nextrune(int inc)
 {
 	ssize_t n;
 
@@ -453,8 +460,7 @@ nextrune(int inc)
 	return n;
 }
 
-static void
-movewordedge(int dir)
+static void movewordedge(int dir)
 {
 	if (dir < 0) { /* move cursor to the start of the word*/
 		while (cursor > 0 && strchr(worddelimiters, text[nextrune(-1)]))
@@ -469,10 +475,116 @@ movewordedge(int dir)
 	}
 }
 
+static void loadhistory(char *filename)
+{
+	static size_t cap = 0;
+	size_t llen;
+	char *line;
+
+	history.fp = fopen(filename, "r");
+	if (!history.fp) {
+		return;
+	}
+
+	for (;;) {
+		line = NULL;
+		llen = 0;
+		if (-1 == getline(&line, &llen, history.fp)) {
+			if (ferror(history.fp)) {
+				die("failed to read history");
+			}
+			free(line);
+			break;
+		}
+
+		if (cap == history.size) {
+			cap += 64 * sizeof(char*);
+			history.items = realloc(history.items, cap);
+			if (!history.items) {
+				die("failed to realloc memory");
+			}
+		}
+		strtok(line, "\n");
+		history.items[history.size++] = line;
+	}
+	history.pos = history.size;
+}
+
+static void navhistory(int dir)
+{
+	static char def[BUFSIZ];
+	char *p = NULL;
+	size_t len = 0;
+
+	if (!history.items || history.pos + 1 == 0)
+		return;
+
+	if (history.size == history.pos) {
+		strncpy(def, text, sizeof(def));
+	}
+
+	switch(dir) {
+	case 1:
+		if (history.pos < history.size - 1) {
+			p = history.items[++history.pos];
+		} else if (history.pos == history.size - 1) {
+			p = def;
+			history.pos++;
+		}
+		break;
+	case -1:
+		if (history.pos > 0) {
+			p = history.items[--history.pos];
+		}
+		break;
+	}
+	if (p == NULL) {
+		return;
+	}
+
+	len = MIN(strlen(p), BUFSIZ - 1);
+	strncpy(text, p, len);
+	text[len] = '\0';
+	cursor = len;
+	match();
+}
+
+static void savehistory(char *input)
+{
+	bool put_input = true;
+	unsigned int i;
+
+	if (!history.fp || maxhist == 0 || strlen(input) == 0)
+		goto out;
+
+	freopen(NULL, "w", history.fp);
+
+	i = history.size < maxhist ? 0 : history.size - maxhist;
+	for (; i < history.size; i++) {
+		char *item = history.items[i];
+		if (0 >= fprintf(history.fp, "%s\n", item))
+			die("failed to write history: %s", ferror(history.fp));
+
+		if (!strcmp(input, item))
+			put_input = false;
+	}
+
+	if (put_input)
+		fprintf(history.fp, "%s\n", input);
+
+	if (fclose(history.fp))
+		die("failed to close history file: %s", history.fp);
+
+out:
+	for (i = 0; i < history.size; i++)
+		free(history.items[i]);
+	free(history.items);
+}
+
 static void keypress(XKeyEvent *ev)
 {
 	char buf[32];
-	int len;
+	int len, i;
 	KeySym ksym;
 	Status status;
 
@@ -523,6 +635,26 @@ static void keypress(XKeyEvent *ev)
 			XConvertSelection(dpy, (ev->state & ShiftMask) ? clip : XA_PRIMARY,
 			                  utf8, utf8, win, CurrentTime);
 			return;
+		case XK_r:
+			if (history.fp) {
+				if (!backup_items) {
+					backup_items = items;
+					items = calloc(history.size + 1, sizeof(struct item));
+					if (!items) {
+						die("cannot allocate memory");
+					}
+
+					for (i = 0; i < history.size; i++) {
+						items[i].text = history.items[i];
+					}
+				} else {
+					free(items);
+					items = backup_items;
+					backup_items = NULL;
+				}
+			}
+			match();
+			goto draw;
 		case XK_Left:
 			movewordedge(-1);
 			goto draw;
@@ -552,6 +684,14 @@ static void keypress(XKeyEvent *ev)
 		case XK_j: ksym = XK_Next;  break;
 		case XK_k: ksym = XK_Prior; break;
 		case XK_l: ksym = XK_Down;  break;
+		case XK_p:
+			navhistory(-1);
+			buf[0]=0;
+			break;
+		case XK_n:
+			navhistory(1);
+			buf[0]=0;
+			break;
 		default:
 			return;
 		}
@@ -630,6 +770,7 @@ insert:
 	case XK_KP_Enter:
 		puts((sel && !(ev->state & ShiftMask)) ? sel->text : text);
 		if (!(ev->state & ControlMask)) {
+			savehistory((sel && !(ev->state & ShiftMask)) ? sel->text : text);
 			cleanup();
 			exit(0);
 		}
@@ -969,7 +1110,7 @@ static void setup(void)
 
 static void usage(void)
 {
-	fputs("usage: dmenu [-bfiv] [-l lines] [-p prompt] [-fn font] [-m monitor]\n"
+	fputs("usage: dmenu [-bfiv] [-H Histfile] [-l lines] [-p prompt] [-fn font] [-m monitor]\n"
 		  "             [-x xoffset] [-y yoffset] [-z width]\n"
 		  "             [-nb color] [-nf color] [-sb color] [-sf color]\n"
 		  "             [-nhb color] [-nhf color] [-shb color] [-shf color]\n"
@@ -1016,6 +1157,7 @@ void xinitvisual()
 int main(int argc, char *argv[])
 {
 	XWindowAttributes wa;
+	char *histfile = NULL;
 	int i, fast = 0;
 
 	for (i = 1; i < argc; i++)
@@ -1035,6 +1177,8 @@ int main(int argc, char *argv[])
 		} else if (i + 1 == argc)
 			usage();
 		/* these options take one argument */
+		else if (!strcmp(argv[i], "-H"))
+			histfile = argv[++i];
 		else if (!strcmp(argv[i], "-l"))   /* number of lines in vertical list */
 			lines = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "-x"))   /* window x offset */
@@ -1085,6 +1229,7 @@ int main(int argc, char *argv[])
 	drw = drw_create(dpy, screen, root, wa.width, wa.height, visual, depth, cmap);
 	if (!drw_fontset_create(drw, fonts, LENGTH(fonts)))
 		die("no fonts could be loaded.");
+	loadhistory(histfile);
 	lrpad = drw->fonts->h;
 
 #ifdef __OpenBSD__
