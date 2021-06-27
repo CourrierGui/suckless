@@ -33,8 +33,8 @@
 
 #include "arg.h"
 #include "common.h"
+#include <sl-utils.h>
 
-#define LENGTH(x)               (sizeof(x) / sizeof(x[0]))
 #define CLEANMASK(mask)         (mask & (MODKEY|GDK_SHIFT_MASK))
 
 enum { AtomFind, AtomGo, AtomUri, AtomLast };
@@ -142,7 +142,6 @@ typedef struct {
 } SiteSpecific;
 
 /* Surf */
-static void die(const char *errstr, ...);
 static void usage(void);
 static void setup(void);
 static void sigchld(int unused);
@@ -302,17 +301,6 @@ static ParamName loadfinished[] = {
 #include "config.h"
 
 void
-die(const char *errstr, ...)
-{
-       va_list ap;
-
-       va_start(ap, errstr);
-       vfprintf(stderr, errstr, ap);
-       va_end(ap);
-       exit(1);
-}
-
-void
 usage(void)
 {
 	die("usage: surf [-bBdDfFgGiIkKmMnNpPsStTvwxX]\n"
@@ -370,7 +358,7 @@ setup(void)
 	}
 
 
-	for (i = 0; i < LENGTH(certs); ++i) {
+	for (i = 0; i < LEN(certs); ++i) {
 		if (!regcomp(&(certs[i].re), certs[i].regex, REG_EXTENDED)) {
 			certs[i].file = g_strconcat(certdir, "/", certs[i].file,
 			                            NULL);
@@ -383,7 +371,7 @@ setup(void)
 
 	if (!stylefile) {
 		styledir = buildpath(styledir);
-		for (i = 0; i < LENGTH(styles); ++i) {
+		for (i = 0; i < LEN(styles); ++i) {
 			if (!regcomp(&(styles[i].re), styles[i].regex,
 			    REG_EXTENDED)) {
 				styles[i].file = g_strconcat(styledir, "/",
@@ -399,7 +387,7 @@ setup(void)
 		stylefile = buildfile(stylefile);
 	}
 
-	for (i = 0; i < LENGTH(uriparams); ++i) {
+	for (i = 0; i < LEN(uriparams); ++i) {
 		if (regcomp(&(uriparams[i].re), uriparams[i].uri,
 		    REG_EXTENDED)) {
 			fprintf(stderr, "Could not compile regex: %s\n",
@@ -626,7 +614,7 @@ getatom(Client *c, int a)
 	XGetWindowProperty(dpy, c->xid, atoms[a], 0L, BUFSIZ, False, XA_STRING,
 	                   &adummy, &idummy, &ldummy, &ldummy, &p);
 	if (p)
-		strncpy(buf, (char *)p, LENGTH(buf) - 1);
+		strncpy(buf, (char *)p, LEN(buf) - 1);
 	else
 		buf[0] = '\0';
 	XFree(p);
@@ -718,7 +706,7 @@ seturiparameters(Client *c, const char *uri, ParamName *params)
 	Parameter *uriconfig = NULL;
 	int i, p;
 
-	for (i = 0; i < LENGTH(uriparams); ++i) {
+	for (i = 0; i < LEN(uriparams); ++i) {
 		if (uriparams[i].uri &&
 		    !regexec(&(uriparams[i].re), uri, 0, NULL, 0)) {
 			uriconfig = uriparams[i].config;
@@ -875,7 +863,7 @@ getcert(const char *uri)
 {
 	int i;
 
-	for (i = 0; i < LENGTH(certs); ++i) {
+	for (i = 0; i < LEN(certs); ++i) {
 		if (certs[i].regex &&
 		    !regexec(&(certs[i].re), uri, 0, NULL, 0))
 			return certs[i].file;
@@ -919,7 +907,7 @@ getstyle(const char *uri)
 	if (stylefile)
 		return stylefile;
 
-	for (i = 0; i < LENGTH(styles); ++i) {
+	for (i = 0; i < LEN(styles); ++i) {
 		if (styles[i].regex &&
 		    !regexec(&(styles[i].re), uri, 0, NULL, 0))
 			return styles[i].file;
@@ -976,7 +964,7 @@ evalscript(Client *c, const char *jsstr, ...)
 void
 updatewinid(Client *c)
 {
-	snprintf(winid, LENGTH(winid), "%lu", c->xid);
+	snprintf(winid, LEN(winid), "%lu", c->xid);
 }
 
 void
@@ -1009,7 +997,7 @@ newwindow(Client *c, const Arg *a, int noembed)
 	cmd[i++] = curconfig[DiskCache].val.i ? "-D" : "-d";
 	if (embed && !noembed) {
 		cmd[i++] = "-e";
-		snprintf(tmp, LENGTH(tmp), "%lu", embed);
+		snprintf(tmp, LEN(tmp), "%lu", embed);
 		cmd[i++] = tmp;
 	}
 	cmd[i++] = curconfig[RunInFullscreen].val.i ? "-F" : "-f" ;
@@ -1292,7 +1280,7 @@ buttonreleased(GtkWidget *w, GdkEvent *e, Client *c)
 
 	element = webkit_hit_test_result_get_context(c->mousepos);
 
-	for (i = 0; i < LENGTH(buttons); ++i) {
+	for (i = 0; i < LEN(buttons); ++i) {
 		if (element & buttons[i].target &&
 		    e->button.button == buttons[i].button &&
 		    CLEANMASK(e->button.state) == CLEANMASK(buttons[i].mask) &&
@@ -1342,7 +1330,7 @@ winevent(GtkWidget *w, GdkEvent *e, Client *c)
 		break;
 	case GDK_KEY_PRESS:
 		if (!curconfig[KioskMode].val.i) {
-			for (i = 0; i < LENGTH(keys); ++i) {
+			for (i = 0; i < LEN(keys); ++i) {
 				if (gdk_keyval_to_lower(e->key.keyval) ==
 				    keys[i].keyval &&
 				    CLEANMASK(e->key.state) == keys[i].mod &&

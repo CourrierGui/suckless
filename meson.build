@@ -10,6 +10,7 @@ xrender = cc.find_library('Xrender', required : true)
 m_dep = cc.find_library('m', required : true)
 
 
+subdir('common')
 subdir('dwm')
 subdir('st')
 subdir('dmenu')

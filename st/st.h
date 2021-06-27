@@ -1,15 +1,14 @@
 #pragma once
 /* See LICENSE for license details. */
 
-#include <stdint.h>
+
 #include <sys/types.h>
 
+#include <sl-utils.h>
+
+#include <stdint.h>
+
 /* macros */
-#define MIN(a, b)		((a) < (b) ? (a) : (b))
-#define MAX(a, b)		((a) < (b) ? (b) : (a))
-#define LEN(a)			(sizeof(a) / sizeof(a)[0])
-#define BETWEEN(x, a, b)	((a) <= (x) && (x) <= (b))
-#define OUT(x, a, b)		((a) <= (x) || (x) <= (b))
 #define DIVCEIL(n, d)		(((n) + ((d) - 1)) / (d))
 #define DEFAULT(a, b)		(a) = (a) ? (a) : (b)
 #define LIMIT(x, a, b)		(x) = (x) < (a) ? (a) : (x) > (b) ? (b) : (x)
@@ -85,7 +84,6 @@ typedef union {
 	const char *s;
 } Arg;
 
-void die(const char *, ...);
 void redraw(void);
 void draw(void);
 
@@ -118,10 +116,6 @@ int selected(int, int);
 char *getsel(void);
 
 size_t utf8encode(Rune, char *);
-
-void *xmalloc(size_t);
-void *xrealloc(void *, size_t);
-char *xstrdup(const char *);
 
 int isboxdraw(Rune);
 ushort boxdrawindex(const Glyph *);

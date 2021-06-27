@@ -20,7 +20,7 @@
 #include <X11/Xft/Xft.h>
 
 #include "drw.h"
-#include "util.h"
+#include <sl-utils.h>
 
 /* macros */
 #define INTERSECT(x,y,w,h,r)  (MAX(0, MIN((x)+(w),(r).x_org+(r).width)  - MAX((x),(r).x_org)) \
@@ -363,7 +363,7 @@ void fuzzymatch(void)
 	if (number_of_matches) {
 		/* initialize array with matches */
 		if (!(fuzzymatches = realloc(fuzzymatches, number_of_matches * sizeof(struct item*))))
-			die("cannot realloc %u bytes:", number_of_matches * sizeof(struct item*));
+			pdie("cannot realloc %u bytes:", number_of_matches * sizeof(struct item*));
 		for (i = 0, it = matches; it && i < number_of_matches; i++, it = it->right) {
 			fuzzymatches[i] = it;
 		}
@@ -399,7 +399,7 @@ static void match(void)
 	/* separate input text into tokens to be matched individually */
 	for (s = strtok(buf, " "); s; tokv[tokc - 1] = s, s = strtok(NULL, " "))
 		if (++tokc > tokn && !(tokv = realloc(tokv, ++tokn * sizeof *tokv)))
-			die("cannot realloc %u bytes:", tokn * sizeof *tokv);
+			pdie("cannot realloc %u bytes:", tokn * sizeof *tokv);
 	len = tokc ? strlen(tokv[0]) : 0;
 
 	matches = lprefix = lsubstr = matchend = prefixend = substrend = NULL;
@@ -942,11 +942,11 @@ readstdin(void)
 	for (i = 0; fgets(buf, sizeof buf, stdin); i++) {
 		if (i + 1 >= size / sizeof *items)
 			if (!(items = realloc(items, (size += BUFSIZ))))
-				die("cannot realloc %u bytes:", size);
+				pdie("cannot realloc %u bytes:", size);
 		if ((p = strchr(buf, '\n')))
 			*p = '\0';
 		if (!(items[i].text = strdup(buf)))
-			die("cannot strdup %u bytes:", strlen(buf) + 1);
+			pdie("cannot strdup %u bytes:", strlen(buf) + 1);
 		items[i].out = 0;
 		drw_font_getexts(drw->fonts, buf, strlen(buf), &tmpmax, NULL);
 		if (tmpmax > inputw) {

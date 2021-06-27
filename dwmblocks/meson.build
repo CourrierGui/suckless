@@ -3,6 +3,6 @@ sources = [
 ]
 
 executable('dwmblocks', sources, install : true,
-           dependencies : Xlib,
+           dependencies : [ Xlib, common_dep ],
            c_args : [ '-std=gnu99' ]
 )

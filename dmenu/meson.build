@@ -1,11 +1,11 @@
 sources = [
-  'arg.h', 'config.h', 'dmenu.c', 'drw.c', 'drw.h', 'util.c', 'util.h',
+  'arg.h', 'config.h', 'dmenu.c', 'drw.c', 'drw.h',
 ]
 
 version = '5.0'
 
 executable('dmenu', sources, install : true,
-           dependencies : [ freetype, Xlib, xft, fontconfig, xrender, m_dep ],
+           dependencies : [ freetype, Xlib, xft, fontconfig, xrender, m_dep, common_dep ],
            c_args : [ '-DVERSION="' + version + '"', '-std=gnu99' ]
 )
 

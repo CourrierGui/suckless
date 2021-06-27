@@ -345,7 +345,8 @@ int historyMove(int x, int y, int ly)
 
 #include "normalMode.c"
 
-void selnormalize(void) {
+void selnormalize(void)
+{
 	historyOpToggle(1, 1);
 
 	int const oldb = sel.nb.y, olde = sel.ne.y;
@@ -383,34 +384,6 @@ void selnormalize(void) {
 	if (BETWEEN(sel.ne.y, 0, term.row - 1)) term.dirty[sel.ne.y] = 1;
 
 	historyOpToggle(-1, 1);
-}
-
-void *xmalloc(size_t len)
-{
-	void *p;
-
-	if (!(p = malloc(len)))
-		die("malloc: %s\n", strerror(errno));
-
-	return p;
-}
-
-void *xrealloc(void *p, size_t len)
-{
-	if ((p = realloc(p, len)) == NULL)
-		die("realloc: %s\n", strerror(errno));
-
-	return p;
-}
-
-char *xstrdup(const char *s)
-{
-	char *p;
-
-	if ((p = strdup(s)) == NULL)
-		die("strdup: %s\n", strerror(errno));
-
-	return p;
 }
 
 size_t utf8decode(const char *c, Rune *u, size_t clen)
@@ -493,16 +466,14 @@ static const char base64_digits[] = {
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 
-char
-base64dec_getc(const char **src)
+char base64dec_getc(const char **src)
 {
 	while (**src && !isprint(**src))
 		(*src)++;
 	return **src ? *((*src)++) : '=';  /* emulate padding if string ends */
 }
 
-char *
-base64dec(const char *src)
+char *base64dec(const char *src)
 {
 	size_t in_len = strlen(src);
 	char *result, *dst;
@@ -661,18 +632,7 @@ void selclear(void)
 	selnormalize();
 }
 
-void die(const char *errstr, ...)
-{
-	va_list ap;
-
-	va_start(ap, errstr);
-	vfprintf(stderr, errstr, ap);
-	va_end(ap);
-	exit(1);
-}
-
-void
-execsh(char *cmd, char **args)
+void execsh(char *cmd, char **args)
 {
 	char *sh, *prog, *arg;
 	const struct passwd *pw;
@@ -723,8 +683,7 @@ execsh(char *cmd, char **args)
 	_exit(1);
 }
 
-void
-sigchld(int a)
+void sigchld(int a)
 {
 	int stat;
 	pid_t p;
@@ -742,8 +701,7 @@ sigchld(int a)
 	_exit(0);
 }
 
-void
-stty(char **args)
+void stty(char **args)
 {
 	char cmd[_POSIX_ARG_MAX], **p, *q, *s;
 	size_t n, siz;
@@ -766,8 +724,7 @@ stty(char **args)
 		perror("Couldn't call stty");
 }
 
-int
-ttynew(const char *line, char *cmd, const char *out, char **args)
+int ttynew(const char *line, char *cmd, const char *out, char **args)
 {
 	int m, s;
 
@@ -827,8 +784,7 @@ ttynew(const char *line, char *cmd, const char *out, char **args)
 	return cmdfd;
 }
 
-size_t
-ttyread(void)
+size_t ttyread(void)
 {
 	static char buf[BUFSIZ];
 	static int buflen = 0;
@@ -853,8 +809,7 @@ ttyread(void)
 	}
 }
 
-void
-ttywrite(const char *s, size_t n, int may_echo)
+void ttywrite(const char *s, size_t n, int may_echo)
 {
 	const char *next;
 
@@ -881,8 +836,7 @@ ttywrite(const char *s, size_t n, int may_echo)
 	}
 }
 
-void
-ttywriteraw(const char *s, size_t n)
+void ttywriteraw(const char *s, size_t n)
 {
 	fd_set wfd, rfd;
 	ssize_t r;
@@ -938,8 +892,7 @@ write_error:
 	die("write error on tty: %s\n", strerror(errno));
 }
 
-void
-ttyresize(int tw, int th)
+void ttyresize(int tw, int th)
 {
 	struct winsize w;
 
@@ -951,8 +904,7 @@ ttyresize(int tw, int th)
 		fprintf(stderr, "Couldn't set window size: %s\n", strerror(errno));
 }
 
-void
-ttyhangup()
+void ttyhangup()
 {
 	/* Send SIGHUP to shell */
 	kill(pid, SIGHUP);
@@ -973,8 +925,7 @@ tattrset(int attr)
 	return 0;
 }
 
-void
-tsetdirt(int top, int bot)
+void tsetdirt(int top, int bot)
 {
 	int i;
 
@@ -1104,8 +1055,7 @@ void tscrollup(int orig, int n)
 	selscroll(orig, -n);
 }
 
-void
-selscroll(int orig, int n)
+void selscroll(int orig, int n)
 {
 	if (sel.ob.x == -1)
 		return;
@@ -1124,8 +1074,7 @@ selscroll(int orig, int n)
 	}
 }
 
-void
-tnewline(int first_col)
+void tnewline(int first_col)
 {
 	int y = term.c.y;
 
@@ -1137,8 +1086,7 @@ tnewline(int first_col)
 	tmoveto(first_col ? 0 : term.c.x, y);
 }
 
-void
-csiparse(void)
+void csiparse(void)
 {
 	char *p = csiescseq.buf, *np;
 	long int v;
@@ -1168,14 +1116,12 @@ csiparse(void)
 }
 
 /* for absolute user moves, when decom is set */
-void
-tmoveato(int x, int y)
+void tmoveato(int x, int y)
 {
 	tmoveto(x, y + ((term.c.state & CURSOR_ORIGIN) ? term.top: 0));
 }
 
-void
-tmoveto(int x, int y)
+void tmoveto(int x, int y)
 {
 	int miny, maxy;
 
@@ -1258,8 +1204,7 @@ void tclearregion(int x1, int y1, int x2, int y2)
 	}
 }
 
-void
-tdeletechar(int n)
+void tdeletechar(int n)
 {
 	int dst, src, size;
 	Glyph *line;
@@ -1275,8 +1220,7 @@ tdeletechar(int n)
 	tclearregion(term.col-n, term.c.y, term.col-1, term.c.y);
 }
 
-void
-tinsertblank(int n)
+void tinsertblank(int n)
 {
 	int dst, src, size;
 	Glyph *line;
@@ -1292,22 +1236,19 @@ tinsertblank(int n)
 	tclearregion(src, term.c.y, dst - 1, term.c.y);
 }
 
-void
-tinsertblankline(int n)
+void tinsertblankline(int n)
 {
 	if (BETWEEN(term.c.y, term.top, term.bot))
 		tscrolldown(term.c.y, n);
 }
 
-void
-tdeleteline(int n)
+void tdeleteline(int n)
 {
 	if (BETWEEN(term.c.y, term.top, term.bot))
 		tscrollup(term.c.y, n);
 }
 
-int32_t
-tdefcolor(const int *attr, int *npar, int l)
+int32_t tdefcolor(const int *attr, int *npar, int l)
 {
 	int32_t idx = -1;
 	uint r, g, b;
@@ -1356,8 +1297,7 @@ tdefcolor(const int *attr, int *npar, int l)
 	return idx;
 }
 
-void
-tsetattr(const int *attr, int l)
+void tsetattr(const int *attr, int l)
 {
 	int i;
 	int32_t idx;
@@ -1458,8 +1398,7 @@ tsetattr(const int *attr, int l)
 	}
 }
 
-void
-tsetscroll(int t, int b)
+void tsetscroll(int t, int b)
 {
 	int temp;
 
@@ -1474,8 +1413,7 @@ tsetscroll(int t, int b)
 	term.bot = b;
 }
 
-void
-tsetmode(int priv, int set, const int *args, int narg)
+void tsetmode(int priv, int set, const int *args, int narg)
 {
 	int alt; const int *lim;
 
@@ -1604,8 +1542,7 @@ tsetmode(int priv, int set, const int *args, int narg)
 	}
 }
 
-void
-csihandle(void)
+void csihandle(void)
 {
 	char buf[40];
 	int len;
@@ -1816,8 +1753,7 @@ csihandle(void)
 	}
 }
 
-void
-csidump(void)
+void csidump(void)
 {
 	size_t i;
 	uint c;
@@ -1840,14 +1776,12 @@ csidump(void)
 	putc('\n', stderr);
 }
 
-void
-csireset(void)
+void csireset(void)
 {
 	memset(&csiescseq, 0, sizeof(csiescseq));
 }
 
-void
-strhandle(void)
+void strhandle(void)
 {
 	char *p = NULL, *dec;
 	int j, narg, par;
@@ -1919,8 +1853,7 @@ strhandle(void)
 	strdump();
 }
 
-void
-strparse(void)
+void strparse(void)
 {
 	int c;
 	char *p = strescseq.buf;
@@ -1941,8 +1874,7 @@ strparse(void)
 	}
 }
 
-void
-strdump(void)
+void strdump(void)
 {
 	size_t i;
 	uint c;
@@ -1968,8 +1900,7 @@ strdump(void)
 	fprintf(stderr, "ESC\\\n");
 }
 
-void
-strreset(void)
+void strreset(void)
 {
 	strescseq = (STREscape){
 		.buf = xrealloc(strescseq.buf, STR_BUF_SIZ),
@@ -1977,15 +1908,13 @@ strreset(void)
 	};
 }
 
-void
-sendbreak(const Arg *arg)
+void sendbreak(const Arg *arg)
 {
 	if (tcsendbreak(cmdfd, 0))
 		perror("Error sending break");
 }
 
-void
-tprinter(char *s, size_t len)
+void tprinter(char *s, size_t len)
 {
 	if (iofd != -1 && xwrite(iofd, s, len) < 0) {
 		perror("Error writing to output file");
@@ -1994,26 +1923,22 @@ tprinter(char *s, size_t len)
 	}
 }
 
-void
-toggleprinter(const Arg *arg)
+void toggleprinter(const Arg *arg)
 {
 	term.mode ^= MODE_PRINT;
 }
 
-void
-printscreen(const Arg *arg)
+void printscreen(const Arg *arg)
 {
 	tdump();
 }
 
-void
-printsel(const Arg *arg)
+void printsel(const Arg *arg)
 {
 	tdumpsel();
 }
 
-void
-tdumpsel(void)
+void tdumpsel(void)
 {
 	char *ptr;
 
@@ -2023,8 +1948,7 @@ tdumpsel(void)
 	}
 }
 
-void
-tdumpline(int n)
+void tdumpline(int n)
 {
 	char buf[UTF_SIZ];
 	const Glyph *bp, *end;
@@ -2038,8 +1962,7 @@ tdumpline(int n)
 	tprinter("\n", 1);
 }
 
-void
-tdump(void)
+void tdump(void)
 {
 	int i;
 
@@ -2047,8 +1970,7 @@ tdump(void)
 		tdumpline(i);
 }
 
-void
-tputtab(int n)
+void tputtab(int n)
 {
 	uint x = term.c.x;
 
@@ -2064,8 +1986,7 @@ tputtab(int n)
 	term.c.x = LIMIT(x, 0, term.col-1);
 }
 
-void
-tdefutf8(char ascii)
+void tdefutf8(char ascii)
 {
 	if (ascii == 'G')
 		term.mode |= MODE_UTF8;
@@ -2073,8 +1994,7 @@ tdefutf8(char ascii)
 		term.mode &= ~MODE_UTF8;
 }
 
-void
-tdeftran(char ascii)
+void tdeftran(char ascii)
 {
 	static char cs[] = "0B";
 	static int vcs[] = {CS_GRAPHIC0, CS_USA};
@@ -2087,8 +2007,7 @@ tdeftran(char ascii)
 	}
 }
 
-void
-tdectest(char c)
+void tdectest(char c)
 {
 	int x, y;
 
@@ -2100,8 +2019,7 @@ tdectest(char c)
 	}
 }
 
-void
-tstrsequence(uchar c)
+void tstrsequence(uchar c)
 {
 	switch (c) {
 	case 0x90:   /* DCS -- Device Control String */
@@ -2122,8 +2040,7 @@ tstrsequence(uchar c)
 	term.esc |= ESC_STR;
 }
 
-void
-tcontrolcode(uchar ascii)
+void tcontrolcode(uchar ascii)
 {
 	switch (ascii) {
 	case '\t':   /* HT */
@@ -2223,8 +2140,7 @@ tcontrolcode(uchar ascii)
  * returns 1 when the sequence is finished and it hasn't to read
  * more characters for this sequence, otherwise 0
  */
-int
-eschandle(uchar ascii)
+int eschandle(uchar ascii)
 {
 	switch (ascii) {
 	case '[':
@@ -2306,8 +2222,10 @@ eschandle(uchar ascii)
 	return 1;
 }
 
-void
-tputc(Rune u)
+#define _XOPEN_SOURCE
+#include <wchar.h>
+
+void tputc(Rune u)
 {
 	char c[UTF_SIZ];
 	int control;
@@ -2445,8 +2363,7 @@ check_control_code:
 	}
 }
 
-int
-twrite(const char *buf, int buflen, int show_ctrl)
+int twrite(const char *buf, int buflen, int show_ctrl)
 {
 	int charsize;
 	Rune u;
@@ -2578,8 +2495,7 @@ void tresize(int col, int row)
 	term.c = c;
 }
 
-void
-resettitle(void)
+void resettitle(void)
 {
 	xsettitle(NULL);
 }
@@ -2638,10 +2554,18 @@ void redraw(void)
 	draw();
 }
 
-void historyQuit() { historyModeToggle(0); }
+void historyQuit()
+{
+    historyModeToggle(0);
+}
 
-void historyShiftY(Arg const *y) {
-	if (!histMode) historyModeToggle(1);
+void historyShiftY(Arg const *y)
+{
+	if (!histMode)
+		historyModeToggle(1);
+
 	historyMove(0, 0, y->i);
-	if (insertOff == histOff) historyModeToggle(0);
+
+	if (insertOff == histOff)
+		historyModeToggle(0);
 }

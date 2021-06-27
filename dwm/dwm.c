@@ -43,7 +43,7 @@
 
 #include "drw.h"
 #include "dwm.h"
-#include "util.h"
+#include <sl-utils.h>
 
 /* variables */
 static const char broken[] = "broken";
@@ -100,7 +100,7 @@ static Colormap cmap;
 #include "config.h"
 
 /* compile-time check if all tags fit into an unsigned int bit array. */
-struct NumTags { char limitexceeded[LENGTH(tags) > 31 ? -1 : 1]; };
+struct NumTags { char limitexceeded[LEN(tags) > 31 ? -1 : 1]; };
 
 /* function implementations */
 void applyrules(Client *c) {
@@ -118,7 +118,7 @@ void applyrules(Client *c) {
 	class    = ch.res_class ? ch.res_class : broken;
 	instance = ch.res_name  ? ch.res_name  : broken;
 
-	for (i = 0; i < LENGTH(rules); i++) {
+	for (i = 0; i < LEN(rules); i++) {
 		r = &rules[i];
 		if ((!r->title || strstr(c->name, r->title))
 		&& (!r->class || strstr(class, r->class))
@@ -316,8 +316,8 @@ void buttonpress(XEvent *e) {
 		i = x = 0;
 		do
 			x += TEXTW(tags[i]);
-		while (ev->x >= x && ++i < LENGTH(tags));
-		if (i < LENGTH(tags)) {
+		while (ev->x >= x && ++i < LEN(tags));
+		if (i < LEN(tags)) {
 			click = ClkTagBar;
 			arg.ui = 1 << i;
 		} else if (ev->x < x + blw) {
@@ -350,7 +350,7 @@ void buttonpress(XEvent *e) {
 		XAllowEvents(dpy, ReplayPointer, CurrentTime);
 		click = ClkClientWin;
 	}
-	for (i = 0; i < LENGTH(buttons); i++)
+	for (i = 0; i < LEN(buttons); i++)
 		if (click == buttons[i].click && buttons[i].func && buttons[i].button == ev->button
 		&& CLEANMASK(buttons[i].mask) == CLEANMASK(ev->state))
 			buttons[i].func(click == ClkTagBar && buttons[i].arg.i == 0 ? &arg : &buttons[i].arg);
@@ -385,7 +385,7 @@ cleanup(void)
 		cleanupmon(mons);
 	for (i = 0; i < CurLast; i++)
 		drw_cur_free(drw, cursor[i]);
-	for (i = 0; i < LENGTH(colors); i++)
+	for (i = 0; i < LEN(colors); i++)
 		free(scheme[i]);
 	XDestroyWindow(dpy, wmcheckwin);
 	drw_free(drw);
@@ -553,7 +553,7 @@ Monitor *createmon(void)
 	m->gappoh = gappoh;
 	m->gappov = gappov;
 	m->lt[0] = &layouts[0];
-	m->lt[1] = &layouts[1 % LENGTH(layouts)];
+	m->lt[1] = &layouts[1 % LEN(layouts)];
 	strncpy(m->ltsymbol, layouts[0].symbol, sizeof m->ltsymbol);
 	return m;
 }
@@ -625,7 +625,7 @@ void drawbar(Monitor *m)
 			urg |= c->tags;
 	}
 	x = 0;
-	for (i = 0; i < LENGTH(tags); i++) {
+	for (i = 0; i < LEN(tags); i++) {
 		w = TEXTW(tags[i]);
 		drw_setscheme(drw, scheme[m->tagset[m->seltags] & 1 << i ? SchemeSel : SchemeNorm]);
 		drw_text(drw, x, 0, w, bh, lrpad / 2, tags[i], urg & 1 << i);
@@ -843,9 +843,9 @@ grabbuttons(Client *c, int focused)
 		if (!focused)
 			XGrabButton(dpy, AnyButton, AnyModifier, c->win, False,
 				BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
-		for (i = 0; i < LENGTH(buttons); i++)
+		for (i = 0; i < LEN(buttons); i++)
 			if (buttons[i].click == ClkClientWin)
-				for (j = 0; j < LENGTH(modifiers); j++)
+				for (j = 0; j < LEN(modifiers); j++)
 					XGrabButton(dpy, buttons[i].button,
 						buttons[i].mask | modifiers[j],
 						c->win, False, BUTTONMASK,
@@ -863,9 +863,9 @@ grabkeys(void)
 		KeyCode code;
 
 		XUngrabKey(dpy, AnyKey, AnyModifier, root);
-		for (i = 0; i < LENGTH(keys); i++)
+		for (i = 0; i < LEN(keys); i++)
 			if ((code = XKeysymToKeycode(dpy, keys[i].keysym)))
-				for (j = 0; j < LENGTH(modifiers); j++)
+				for (j = 0; j < LEN(modifiers); j++)
 					XGrabKey(dpy, code, keys[i].mod | modifiers[j], root,
 						True, GrabModeAsync, GrabModeAsync);
 	}
@@ -899,7 +899,7 @@ keypress(XEvent *e)
 
 	ev = &e->xkey;
 	keysym = XKeycodeToKeysym(dpy, (KeyCode)ev->keycode, 0);
-	for (i = 0; i < LENGTH(keys); i++)
+	for (i = 0; i < LEN(keys); i++)
 		if (keysym == keys[i].keysym
 		&& CLEANMASK(keys[i].mod) == CLEANMASK(ev->state)
 		&& keys[i].func)
@@ -1592,7 +1592,7 @@ void setup(void)
 	root = RootWindow(dpy, screen);
 	xinitvisual();
 	drw = drw_create(dpy, screen, root, sw, sh, visual, depth, cmap);
-	if (!drw_fontset_create(drw, fonts, LENGTH(fonts)))
+	if (!drw_fontset_create(drw, fonts, LEN(fonts)))
 		die("no fonts could be loaded.");
 	lrpad = drw->fonts->h;
 	bh = drw->fonts->h + 2;
@@ -1620,8 +1620,8 @@ void setup(void)
 	cursor[CurResize] = drw_cur_create(drw, XC_sizing);
 	cursor[CurMove] = drw_cur_create(drw, XC_fleur);
 	/* init appearance */
-	scheme = ecalloc(LENGTH(colors), sizeof(Clr *));
-	for (i = 0; i < LENGTH(colors); i++)
+	scheme = ecalloc(LEN(colors), sizeof(Clr *));
+	for (i = 0; i < LEN(colors); i++)
 		scheme[i] = drw_scm_create(drw, colors[i], alphas[i], 3);
 	/* init bars */
 	updatebars();
@@ -1682,7 +1682,7 @@ void showhide(Client *c)
 
 void sigchld(int unused) {
 	if (signal(SIGCHLD, sigchld) == SIG_ERR)
-		die("can't install SIGCHLD handler:");
+		pdie("can't install SIGCHLD handler:");
 	while (0 < waitpid(-1, NULL, WNOHANG));
 }
 
@@ -1839,11 +1839,11 @@ void shiftview(const Arg *arg)
 
 	if(arg->i > 0) // left circular shift
 		shifted.ui = (selmon->tagset[selmon->seltags] << arg->i)
-			| (selmon->tagset[selmon->seltags] >> (LENGTH(tags) - arg->i));
+			| (selmon->tagset[selmon->seltags] >> (LEN(tags) - arg->i));
 
 	else // right circular shift
 		shifted.ui = selmon->tagset[selmon->seltags] >> (- arg->i)
-			| selmon->tagset[selmon->seltags] << (LENGTH(tags) + arg->i);
+			| selmon->tagset[selmon->seltags] << (LEN(tags) + arg->i);
 
 	view(&shifted);
 }
@@ -2441,7 +2441,7 @@ void load_xresources(void)
 		return;
 
 	db = XrmGetStringDatabase(resm);
-	for (p = resources; p < resources + LENGTH(resources); p++)
+	for (p = resources; p < resources + LEN(resources); p++)
 		resource_load(db, p->name, p->type, p->dst);
 	XCloseDisplay(display);
 }

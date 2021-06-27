@@ -21,7 +21,7 @@ webext_sources = [
 ]
 
 executable('surf', surf_sources, install : true,
-           dependencies : [ Xlib, deps ],
+           dependencies : [ Xlib, deps, common_dep ],
            c_args : [
              '-DVERSION="' + version + '"',
              '-std=gnu99', '-DGCR_API_SUBJECT_TO_CHANGE',

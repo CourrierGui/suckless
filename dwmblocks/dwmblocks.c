@@ -3,20 +3,23 @@
 #include<string.h>
 #include<unistd.h>
 #include<signal.h>
+
+#include <sl-utils.h>
+
 #ifndef NO_X
 #include<X11/Xlib.h>
 #endif
+
 #ifdef __OpenBSD__
-#define SIGPLUS			SIGUSR1+1
-#define SIGMINUS		SIGUSR1-1
+#  define SIGPLUS  SIGUSR1+1
+#  define SIGMINUS SIGUSR1-1
 #else
-#define SIGPLUS			SIGRTMIN
-#define SIGMINUS		SIGRTMIN
+#  define SIGPLUS  SIGRTMIN
+#  define SIGMINUS SIGRTMIN
 #endif
-#define LENGTH(X)               (sizeof(X) / sizeof (X[0]))
-#define CMDLENGTH		50
-#define MIN( a, b ) ( ( a < b) ? a : b )
-#define STATUSLENGTH (LENGTH(blocks) * CMDLENGTH + 1)
+
+#define CMDLENGTH  50
+#define STATUSLENGTH (LEN(blocks) * CMDLENGTH + 1)
 
 typedef struct {
 	char* icon;
@@ -24,9 +27,11 @@ typedef struct {
 	unsigned int interval;
 	unsigned int signal;
 } Block;
+
 #ifndef __OpenBSD__
 void dummysighandler(int num);
 #endif
+
 void sighandler(int num);
 void buttonhandler(int sig, siginfo_t *si, void *ucontext);
 void getcmds(int time);
@@ -51,7 +56,7 @@ static void (*writestatus) () = pstdout;
 
 #include "blocks.h"
 
-static char statusbar[LENGTH(blocks)][CMDLENGTH] = {0};
+static char statusbar[LEN(blocks)][CMDLENGTH] = {0};
 static char statusstr[2][STATUSLENGTH];
 static char button[] = "\0";
 static int statusContinue = 1;
@@ -100,7 +105,7 @@ void getcmd(const Block *block, char *output)
 void getcmds(int time)
 {
 	const Block* current;
-	for (unsigned int i = 0; i < LENGTH(blocks); i++) {
+	for (unsigned int i = 0; i < LEN(blocks); i++) {
 		current = blocks + i;
 		if ((current->interval != 0 && time % current->interval == 0) || time == -1)
 			getcmd(current,statusbar[i]);
@@ -110,7 +115,7 @@ void getcmds(int time)
 void getsigcmds(unsigned int signal)
 {
 	const Block *current;
-	for (unsigned int i = 0; i < LENGTH(blocks); i++) {
+	for (unsigned int i = 0; i < LEN(blocks); i++) {
 		current = blocks + i;
 		if (current->signal == signal)
 			getcmd(current,statusbar[i]);
@@ -126,7 +131,7 @@ void setupsignals()
 #endif
 
 	struct sigaction sa;
-	for (unsigned int i = 0; i < LENGTH(blocks); i++) {
+	for (unsigned int i = 0; i < LEN(blocks); i++) {
 		if (blocks[i].signal > 0) {
 			signal(SIGMINUS+blocks[i].signal, sighandler);
 			// ignore signal when handling SIGUSR1
@@ -143,7 +148,7 @@ int getstatus(char *str, char *last)
 {
 	strcpy(last, str);
 	str[0] = '\0';
-	for (unsigned int i = 0; i < LENGTH(blocks); i++)
+	for (unsigned int i = 0; i < LEN(blocks); i++)
 		strcat(str, statusbar[i]);
 	str[strlen(str)-strlen(delim)] = '\0';
 	return strcmp(str, last);//0 if they are the same
