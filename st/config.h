@@ -224,7 +224,7 @@ static MouseShortcut mshortcuts[] = {
 
 /* Internal keyboard shortcuts. */
 #define MODKEY Mod1Mask
-#define TERMMOD (Mod1Mask|ShiftMask)
+#define TERMMOD (MODKEY|ShiftMask)
 
 static Shortcut shortcuts[] = {
 	/* mask                 keysym          function        argument */
@@ -235,10 +235,10 @@ static Shortcut shortcuts[] = {
 	{ TERMMOD,              XK_j,           zoom,           {.f = +1} },
 	{ TERMMOD,              XK_k,           zoom,           {.f = -1} },
 
-	{ MODKEY,               XK_J,           historyShiftY,  {.i =  1} },
-	{ MODKEY,               XK_K,           historyShiftY,  {.i = -1} },
+	{ MODKEY,               XK_j,           historyShiftY,  {.i =  1} },
+	{ MODKEY,               XK_k,           historyShiftY,  {.i = -1} },
 	{ MODKEY,               XK_i,           historyQuit,    {.i =  0} },
-	{ MODKEY,               XK_c,           normalMode,     {.i =  0} },
+	{ MODKEY,               XK_n,           normalMode,     {.i =  0} },
 
 	{ MODKEY,               XK_c,           clipcopy,       {.i =  0} },
 	{ MODKEY,               XK_v,           clippaste,      {.i =  0} },
