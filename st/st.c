@@ -1,4 +1,6 @@
 /* See LICENSE for license details. */
+#define _XOPEN_SOURCE
+#define _DEFAULT_SOURCE
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
@@ -20,6 +22,7 @@
 
 #include "st.h"
 #include "win.h"
+#include "normalMode.h"
 
 #if   defined(__linux)
  #include <pty.h>
@@ -2449,7 +2452,8 @@ void draw(void)
 	if (term.line[term.c.y][cx].mode & ATTR_WDUMMY)
 		cx--;
 
-	if (histMode) historyPreDraw();
+	if (histMode)
+        historyPreDraw();
 	drawregion(0, 0, term.col, term.row);
 	if (!histMode)
 		xdrawcursor(cx, term.c.y, term.line[term.c.y][cx],

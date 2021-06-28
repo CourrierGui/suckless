@@ -87,12 +87,6 @@ typedef enum {
 	ParameterLast
 } ParamName;
 
-typedef union {
-	int i;
-	float f;
-	const void *v;
-} Arg;
-
 typedef struct {
 	Arg val;
 	int prio;

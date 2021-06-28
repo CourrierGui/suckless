@@ -32,6 +32,7 @@ char *argv0;
 #define XEMBED_FOCUS_OUT 5
 
 /* macros */
+#undef IS_SET
 #define IS_SET(flag)		((win.mode & (flag)) != 0)
 #define TRUERED(x)		(((x) & 0xff0000) >> 8)
 #define TRUEGREEN(x)		(((x) & 0xff00))

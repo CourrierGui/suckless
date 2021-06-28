@@ -9,7 +9,6 @@
 #include <stdint.h>
 
 /* macros */
-/* macros */
 #define IS_SET(flag)		((term.mode & (flag)) != 0)
 #define ISCONTROLC0(c)		(BETWEEN(c, 0, 0x1f) || (c) == 0x7f)
 #define ISCONTROLC1(c)		(BETWEEN(c, 0x80, 0x9f))
@@ -69,11 +68,6 @@ enum selection_snap {
 	SNAP_LINE = 2
 };
 
-typedef unsigned char uchar;
-typedef unsigned int uint;
-typedef unsigned long ulong;
-typedef unsigned short ushort;
-
 typedef uint_least32_t Rune;
 
 #define Glyph Glyph_
@@ -85,14 +79,6 @@ typedef struct {
 } Glyph;
 
 typedef Glyph *Line;
-
-typedef union {
-	int i;
-	uint ui;
-	float f;
-	const void *v;
-	const char *s;
-} Arg;
 
 void redraw(void);
 void draw(void);
