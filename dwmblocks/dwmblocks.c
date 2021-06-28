@@ -6,6 +6,8 @@
 
 #include <sl-utils.h>
 
+#include "dwmblocks.h"
+
 #ifndef NO_X
 #include<X11/Xlib.h>
 #endif
@@ -20,13 +22,6 @@
 
 #define CMDLENGTH  50
 #define STATUSLENGTH (LEN(blocks) * CMDLENGTH + 1)
-
-typedef struct {
-	char* icon;
-	char* command;
-	unsigned int interval;
-	unsigned int signal;
-} Block;
 
 #ifndef __OpenBSD__
 void dummysighandler(int num);
