@@ -1,10 +1,10 @@
 /* See LICENSE file for copyright and license details. */
-#ifndef CONFIG_H
-#define CONFIG_H
+#pragma once
 
+#include <X11/keysym.h>
 #include <X11/XF86keysym.h>
 #include <X11/Xlib.h>
-#include <X11/keysym.h>
+
 #include "dwm.h"
 
 #define OPAQUE 0xffU
@@ -290,4 +290,3 @@ static Button buttons[] = {
 	// toggle the corresponding tag for the current client
 	{ ClkTagBar,            MODKEY,         Button3,        toggletag,      {0} },
 };
-#endif

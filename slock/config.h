@@ -1,3 +1,7 @@
+#pragma once
+
+#include "slock.h"
+
 /* user and group to drop privileges to */
 static const char *user  = "guillaume";
 static const char *group = "guillaume";

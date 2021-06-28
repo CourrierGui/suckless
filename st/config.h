@@ -1,4 +1,14 @@
 /* See LICENSE file for copyright and license details. */
+#pragma once
+
+#include <wchar.h>
+
+#include <X11/keysym.h>
+#include <X11/Xlib.h>
+
+#include "normalMode.h"
+#include "st.h"
+#include "x.h"
 
 /*
  * appearance

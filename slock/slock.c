@@ -25,28 +25,8 @@
 
 char *argv0;
 
-enum {
-	INIT,
-	INPUT,
-	FAILED,
-	NUMCOLS
-};
-
-struct lock {
-	int screen;
-	Window root, win;
-	Pixmap pmap;
-	Pixmap bgmap;
-	unsigned long colors[NUMCOLS];
-};
-
-struct xrandr {
-	int active;
-	int evbase;
-	int errbase;
-};
-
 #include "config.h"
+#include "slock.h"
 
 Imlib_Image image;
 

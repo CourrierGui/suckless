@@ -2,58 +2,29 @@
 #include <ctype.h>
 #include <locale.h>
 #include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <strings.h>
 #include <time.h>
 #include <unistd.h>
-#include <stdbool.h>
 
-#include <X11/Xlib.h>
 #include <X11/Xatom.h>
+#include <X11/Xft/Xft.h>
 #include <X11/Xproto.h>
 #include <X11/Xutil.h>
 #ifdef XINERAMA
 #include <X11/extensions/Xinerama.h>
 #endif
-#include <X11/Xft/Xft.h>
 
 #include <sl-draw.h>
 #include <sl-utils.h>
 
-/* macros */
-#define INTERSECT(x,y,w,h,r)  (MAX(0, MIN((x)+(w),(r).x_org+(r).width)  - MAX((x),(r).x_org)) \
-                             * MAX(0, MIN((y)+(h),(r).y_org+(r).height) - MAX((y),(r).y_org)))
-#define LENGTH(X)             (sizeof X / sizeof X[0])
-#define TEXTW(X)              (drw_fontset_getwidth(drw, (X)) + lrpad)
-#define NUMBERSMAXDIGITS      100
-#define NUMBERSBUFSIZE        (NUMBERSMAXDIGITS * 2) + 1
+#include "config.h"
+#include "dmenu.h"
 
-#define OPAQUE                0xffU
-
-enum { /* color schemes */
-	SchemeNorm,
-	SchemeSel,
-	SchemeNormHighlight,
-	SchemeSelHighlight,
-	SchemeOut,
-	SchemeLast
-};
-
-struct item {
-	char *text;
-	struct item *left, *right;
-	int out;
-	double distance;
-};
-
-typedef struct {
-	FILE  *fp;    /* pointer to the history file */
-	char **items; /* names of the items in the history */
-	size_t size;  /* number of items in the history */
-	size_t pos;   /* position of the cursor in the history */
-} History;
+static char *cistrstr(const char *s, const char *sub);
+static void xinitvisual();
+static void recalculatenumbers();
 
 static char numbers[NUMBERSBUFSIZE] = "";
 static char text[BUFSIZ] = "";
@@ -84,13 +55,8 @@ static Visual *visual;
 static int depth;
 static Colormap cmap;
 
-#include "config.h"
-
-static char * cistrstr(const char *s, const char *sub);
 static int (*fstrncmp)(const char *, const char *, size_t) = strncasecmp;
 static char *(*fstrstr)(const char *, const char *) = cistrstr;
-static void xinitvisual();
-static void recalculatenumbers();
 
 static void appenditem(struct item *item, struct item **list, struct item **last)
 {
