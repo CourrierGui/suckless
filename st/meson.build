@@ -1,9 +1,9 @@
 sources = [
-  'st.c', 'st.h', 'utils.h', 'win.h',
+  'st.c', 'st.h', 'win.h',
   'x.c', 'x.h', 'arg.h', 'config.h',
   'boxdraw.c', 'boxdraw_data.h',
   'hb.c', 'hb.h',
-  'normalMode.c', 'normalMode.h',
+  'normalMode.c', 'normalMode.h', 'dynamic-array.h', 'dynamic-array.c'
 ]
 
 version = '0.8.4'

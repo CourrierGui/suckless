@@ -6,7 +6,7 @@
 #include <string.h>
 
 #include "normalMode.h"
-#include "utils.h"
+#include "dynamic-array.h"
 #include "st.h"
 #include "x.h"
 
