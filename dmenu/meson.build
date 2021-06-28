@@ -1,5 +1,5 @@
 sources = [
-  'arg.h', 'config.h', 'dmenu.c',
+  'config.h', 'dmenu.c',
 ]
 
 version = '5.0'
@@ -9,7 +9,7 @@ executable('dmenu', sources, install : true,
            c_args : [ '-DVERSION="' + version + '"', '-std=gnu99' ]
 )
 
-executable('stest', 'stest.c', install : true)
+executable('stest', 'stest.c', install : true, dependencies : common_dep)
 
 custom_target('dmenu_path',
   input : 'dmenu_path',

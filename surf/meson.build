@@ -13,11 +13,11 @@ webkit = [
 version = '2.1'
 
 surf_sources = [
-  'surf.c', 'arg.h', 'common.h', 'config.h',
+  'surf.c', 'common.h', 'config.h',
 ]
 
 webext_sources = [
-  'webext-surf.c', 'arg.h', 'common.h', 'config.h',
+  'webext-surf.c', 'common.h', 'config.h',
 ]
 
 executable('surf', surf_sources, install : true,

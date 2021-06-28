@@ -31,8 +31,9 @@
 #include <X11/Xatom.h>
 #include <glib.h>
 
-#include "arg.h"
 #include "common.h"
+
+#include <sl-arg.h>
 #include <sl-utils.h>
 
 #define CLEANMASK(mask)         (mask & (MODKEY|GDK_SHIFT_MASK))

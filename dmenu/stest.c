@@ -8,7 +8,8 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "arg.h"
+#include <sl-arg.h>
+
 char *argv0;
 
 #define FLAG(x)  (flag[(x)-'a'])
