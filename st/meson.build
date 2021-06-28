@@ -3,9 +3,7 @@ sources = [
   'x.c', 'x.h', 'arg.h', 'config.h',
   'boxdraw.c', 'boxdraw_data.h',
   'hb.c', 'hb.h',
-  # FIXME decouple normalMode with st so that it can be included here instead
-  # of including the source file in st.c
-  # 'normalMode.c', 'normalMode.h',
+  'normalMode.c', 'normalMode.h',
 ]
 
 version = '0.8.4'

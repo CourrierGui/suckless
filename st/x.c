@@ -566,14 +566,12 @@ void selnotify(XEvent *e)
 	XDeleteProperty(xw.dpy, xw.win, (int)property);
 }
 
-void
-xclipcopy(void)
+void xclipcopy(void)
 {
 	clipcopy(NULL);
 }
 
-void
-selrequest(XEvent *e)
+void selrequest(XEvent *e)
 {
 	XSelectionRequestEvent *xsre;
 	XSelectionEvent xev;

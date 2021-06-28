@@ -43,3 +43,6 @@ void zoom(const Arg *);
 void zoomabs(const Arg *);
 void zoomreset(const Arg *);
 void ttysend(const Arg *);
+void xsetsel(char *str);
+void xclipcopy(void);
+void xdrawline(Line line, int x1, int y1, int x2);
