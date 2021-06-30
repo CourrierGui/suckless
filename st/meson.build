@@ -3,7 +3,7 @@ sources = [
   'x.c', 'x.h', 'arg.h', 'config.h',
   'boxdraw.c', 'boxdraw_data.h',
   'hb.c', 'hb.h',
-  'normalMode.c', 'normalMode.h', 'dynamic-array.h', 'dynamic-array.c'
+  'normalMode.c', 'normalMode.h', 'dynamic-array.c', 'dynamic-array.h'
 ]
 
 version = '0.8.4'

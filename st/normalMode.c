@@ -1,13 +1,15 @@
 #include <X11/keysym.h>
 #include <X11/XKBlib.h>
 
-#include <stdio.h>
 #include <ctype.h>
+#include <stdio.h>
 #include <string.h>
 
-#include "normalMode.h"
 #include "dynamic-array.h"
+#include "normalMode.h"
+
 #include "st.h"
+#include "win.h"
 #include "x.h"
 
 int rows();
@@ -20,6 +22,7 @@ extern int histOp, histMode, histOff, insertOff, altToggle, *mark;
 extern Line *buf;
 extern Selection sel;
 extern TCursor c[3];
+extern TermWindow termwin;
 
 typedef struct {
 	int p[3];
@@ -55,7 +58,10 @@ struct NormalModeState {
 	} m;
 } defaultNormalMode, state;
 
-DynamicArray searchStr=UTF8_ARRAY, cCmd=UTF8_ARRAY, lCmd=UTF8_ARRAY;
+DynamicArray searchStr = UTF8_ARRAY;
+DynamicArray cCmd = UTF8_ARRAY;
+DynamicArray lCmd = UTF8_ARRAY;
+
 Glyph styleCmd;
 
 char posBuffer[10], braces[6][3] = {
@@ -79,9 +85,9 @@ static inline int contains(Rune l, char const * values, size_t const memSize)
 
 static inline void decodeTo(char const *cs, size_t len, DynamicArray *arr)
 {
-	char *var = expand(arr);
+	char *var = da_expand(arr);
 	if (!var)
-		empty(arr);
+		da_empty(arr);
 	else
 		utf8decode(cs, (Rune*)(var), len);
 }
@@ -98,13 +104,13 @@ static int highlighted(int x, int y)
 {
 	int const s = term.row*term.col;
 	int const i = y * term.col + x;
-	int const sz = size(&searchStr);
+	int const sz = da_size(&searchStr);
 	return sz && i<s && mark[i] != sz && i + mark[i] < s && !mark[i + mark[i]];
 }
 
 static void markSearchMatches(int all)
 {
-	int sz = size(&searchStr), ox = 0, oy = 0, oi=0;
+	int sz = da_size(&searchStr), ox = 0, oy = 0, oi=0;
 
 	for (int y=0; sz && all && y<term.row; ++y)
 		for (int x=0; x<term.col; ++x)
@@ -113,7 +119,7 @@ static void markSearchMatches(int all)
 	for (int y = 0, wi=0, owi=0, i=0; sz && y < term.row; ++y) {
 		for (int x=0; x<term.col; ++x, wi%=sz, ++i, owi=wi) {
 			if (all || term.dirty[y]) {
-				mark[i]=sz-(wi=(getU32(&searchStr,wi,1)==term.line[y][x].u?wi+1:0));
+				mark[i]=sz-(wi=(da_getu32(&searchStr,wi,1)==term.line[y][x].u?wi+1:0));
 				if (wi==1) ox=x, oy=y, oi=i; else if (!wi && owi) x=ox, y=oy, i=oi;
 			}
 		}
@@ -131,10 +137,12 @@ static int findString(int s, int all)
 	};
 
 	historyMove(s, 0, 0);
-	uint32_t strSz=size(&searchStr), maxIter=rows()*term.col+strSz, wIdx=0;
+	uint32_t strSz = da_size(&searchStr);
+	uint32_t maxIter = rows() * term.col + strSz;
+	uint32_t wIdx=0;
 
 	for (uint32_t i=0, wi = 0; wIdx<strSz && ++i<=maxIter; historyMove(s, 0, 0), wi=wIdx) {
-		wIdx = (getU32(&searchStr, wIdx, s>0) == cChar()) ? wIdx + 1:0;
+		wIdx = (da_getu32(&searchStr, wIdx, s>0) == cChar()) ? wIdx + 1:0;
 		if (wi && !wIdx)
 			historyMove(-(int)(s*wi), 0, 0);
 	}
@@ -147,6 +155,11 @@ static int findString(int s, int all)
 	markSearchMatches(all);
 	return wIdx == strSz;
 }
+
+void normalMode() {
+    historyModeToggle((termwin.mode ^=MODE_NORMAL) & MODE_NORMAL);
+}
+
 
  /* Execute series of normal-mode commands from char array / decoded from dynamic array */
 ExitState pressKeys(char const* s, size_t e)
@@ -167,8 +180,10 @@ static ExitState executeCommand(uint32_t *cs, size_t z)
 /* Get character for overlay, if the overlay (st) has something to show, else normal char. */
 static void getChar(DynamicArray *st, Glyph *glyphChange, int y, int xEnd, int width, int x)
 {
-	if (x < xEnd - min(min(width,xEnd), size(st))) *glyphChange = term.line[y][x];
-	else if (x<xEnd) glyphChange->u = *((Rune*)(st->content + (size(st)+x-xEnd)*st->elSize));
+	if (x < xEnd - min(min(width,xEnd), da_size(st)))
+		*glyphChange = term.line[y][x];
+	else if (x < xEnd)
+		glyphChange->u = *((Rune*) da_item_from_end(st, xEnd-x));
 }
 
 /* Expand "infix" expression: for instance (w =>)       l     b     |   | v     e    |   | y */
@@ -211,8 +226,8 @@ static ExitState expandExpression(char l)
 	if (!found)
 		return failed;
 
-	assign(&lCmd, &cCmd);
-	empty(&cCmd);
+	da_assign(&lCmd, &cCmd);
+	da_empty(&cCmd);
 	state.cmd = defaultNormalMode.cmd;
 	return pressKeys(mot, 11);
 }
@@ -298,14 +313,16 @@ ExitState kPressHist(char const *cs, size_t len, int ctrl, KeySym const *kSym)
 	ExitState result = success;
 	if (esc || ret || ins) { result = exitMotion, len = 0;
 	} else if (kSym && *kSym == XK_BackSpace) {
-		if ((search || state.m.c) && size(&cCmd)) pop(&cCmd);
+		if ((search || state.m.c) && da_size(&cCmd))
+			da_pop(&cCmd);
+
 		if (search) {
-			if (size(&searchStr))
-				pop(&searchStr);
+			if (da_size(&searchStr))
+				da_pop(&searchStr);
 			else
 				result = exitMotion;
 
-			if (!size(&searchStr))
+			if (!da_size(&searchStr))
 				tfulldirt();
 
 			applyPos(state.m.searchPos);
@@ -319,22 +336,23 @@ ExitState kPressHist(char const *cs, size_t len, int ctrl, KeySym const *kSym)
 	} else if (len == 0) { result = failed;
 	} else if (quantifier) { state.m.c = min(SHRT_MAX, (int)state.m.c*10+cs[0]-48);
 	} else if (state.cmd.infix && state.cmd.op && (result = expandExpression(cs[0]), len=0)) {
-    } else if (cs[0] == 'd') { state = defaultNormalMode; result = exitMotion; state.m.active = 1;
+	} else if (cs[0] == 'd') { state = defaultNormalMode; result = exitMotion; state.m.active = 1;
 	} else if (cs[0] == '.') {
-		if (size(&cCmd)) assign(&lCmd, &cCmd);
-		empty(&cCmd);
-		executeCommand((uint32_t*) lCmd.content, size(&lCmd));
-		empty(&cCmd);
+		if (da_size(&cCmd))
+			da_assign(&lCmd, &cCmd);
+		da_empty(&cCmd);
+		executeCommand((uint32_t*) da_item_at(&lCmd, 0), da_size(&lCmd));
+		da_empty(&cCmd);
 		len = 0;
 	} else if (cs[0] == 'r') { tfulldirt();
 	} else if (cs[0] == 'c') {
-		empty(&lCmd);
-		empty(&cCmd);
-		empty(&searchStr);
+		da_empty(&lCmd);
+		da_empty(&cCmd);
+		da_empty(&searchStr);
 		tfulldirt();
 		len = 0;
 	} else if (cs[0] == fw || cs[0] == bw) {
-		empty(&searchStr);
+		da_empty(&searchStr);
 		state.m.search = (Search) cs[0];
 		state.m.searchPos = (Pos){.p={term.c.x, term.c.y, prevYOff}};
 		state.m.active = 1;
@@ -380,12 +398,15 @@ ExitState kPressHist(char const *cs, size_t len, int ctrl, KeySym const *kSym)
 		}
 		state = defaultNormalMode;
 		selclear();
-		if (!esc) assign(&lCmd, &cCmd);
-		empty(&cCmd);
+
+		if (!esc)
+            da_assign(&lCmd, &cCmd);
+
+		da_empty(&cCmd);
 	} // Update the content displayed in the history overlay
 
 	styleCmd = style[state.cmd.op==yank ? 1 : (state.cmd.op==visual ? 2 :
-	                (state.cmd.op==visualLine ? 3 :0))];
+											  (state.cmd.op==visualLine ? 3 :0))];
 	int const posLin = !IS_SET(MODE_ALTSCREEN) ? rangeY(insertOff-histOff):0, h=rows()-term.row;
 
 	if (!posLin || posLin==h || !h)
@@ -426,7 +447,7 @@ void historyOverlay(int x, int y, Glyph* g)
 		else if (x > term.col - 7)
 			g->u = (Rune)(posBuffer[x - term.col + 7]);
 		else
-			getChar(size(&cCmd) ?&cCmd :&lCmd, g, term.row-1, term.col-7, term.col/3-6, x);
+			getChar(da_size(&cCmd) ?&cCmd :&lCmd, g, term.row-1, term.col-7, term.col/3-6, x);
 
 	} else if (highlighted(x, y)) {
 		g->bg = highlightBg, g->fg = highlightFg;

@@ -1,63 +1,63 @@
 #include "dynamic-array.h"
 
-int p_alloc(DynamicArray *s, uint32_t amount)
+int da_fit(DynamicArray *s, uint32_t amount)
 {
-	uint32_t const diff = s->init + s->elSize * amount - s->alloc;
-	uint32_t const nas = s->alloc + max(diff,15) * s->elSize;
+	uint32_t const diff = s->size + s->element_size * amount - s->capacity;
+	uint32_t const nas = s->capacity + max(diff,15) * s->element_size;
 
-	if (s->alloc < s->init + s->elSize * amount) {
-		char* tmp = realloc(s->content, nas);
-
+	if (s->capacity < s->size + s->element_size * amount) {
+		char* tmp = realloc(s->values, nas);
 		if (!tmp)
 			return 0;
-		s->alloc = nas;
-		s->content = tmp;
+
+		s->capacity = nas;
+		s->values = tmp;
 	}
 	return 1;
 }
 
-char *view(DynamicArray * s, uint32_t i)
+char *da_item_at(DynamicArray * s, uint32_t i)
 {
-	return s->content + i * s->elSize;
+	return s->values + i * s->element_size;
 }
 
-char *end(DynamicArray *s, uint32_t i)
+char *da_item_from_end(DynamicArray *s, uint32_t i)
 {
-	return s->content + s->init - (i+1) * s->elSize;
+	return s->values + s->size - (i+1) * s->element_size;
 }
 
-uint32_t getU32(DynamicArray* s, uint32_t i, int b)
+uint32_t  da_getu32(DynamicArray* s, uint32_t i, bool begin)
 {
-	return *((uint32_t*) (b ? view(s,i) : end(s,i)));
+	return *((uint32_t*) (begin ? da_item_at(s, i) : da_item_from_end(s, i)));
 }
 
-char *expand(DynamicArray *s)
+char *da_expand(DynamicArray *s)
 {
-	if (!p_alloc(s, 1))
+	if (!da_fit(s, 1))
 		return NULL;
 
-	s->init += s->elSize;
+	s->size += s->element_size;
 
-	return end(s, 0);
+	return da_item_from_end(s, 0);
 }
 
-void pop(DynamicArray* s)
+void da_pop(DynamicArray* s)
 {
-	s->init -= s->elSize;
+	s->size -= s->element_size;
 }
 
-void empty(DynamicArray* s)
+void da_empty(DynamicArray* s)
 {
-	s->init = 0;
+	s->size = 0;
 }
 
-int size(DynamicArray const * s)
+int da_size(DynamicArray const * s)
 {
-	return s->init / s->elSize;
+	return s->size / s->element_size;
 }
 
-void assign(DynamicArray* s, DynamicArray const *o)
+void da_assign(DynamicArray* s, DynamicArray const *o)
 {
-	if (p_alloc(s, size(o)))
-		memcpy(s->content, o->content, (s->init=o->init));
+	if (da_fit(s, da_size(o)))
+		memcpy(s->values, o->values, (s->size = o->size));
 }

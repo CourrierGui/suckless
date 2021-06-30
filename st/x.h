@@ -4,6 +4,17 @@
 #include <X11/Xlib.h>
 #include "st.h"
 
+/* Purely graphic info */
+typedef struct {
+	int tw, th; /* tty width and height */
+	int w, h; /* window width and height */
+	int hborderpx, vborderpx;
+	int ch; /* char height */
+	int cw; /* char width  */
+	int mode; /* window state/mode flags */
+	int cursor; /* cursor style */
+} TermWindow;
+
 /* types used in config.h */
 typedef struct {
 	uint mod;
