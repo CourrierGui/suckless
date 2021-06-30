@@ -86,6 +86,7 @@ static inline int contains(Rune l, char const * values, size_t const memSize)
 static inline void decodeTo(char const *cs, size_t len, DynamicArray *arr)
 {
 	char *var = da_expand(arr);
+
 	if (!var)
 		da_empty(arr);
 	else
@@ -94,23 +95,27 @@ static inline void decodeTo(char const *cs, size_t len, DynamicArray *arr)
 
 static inline void applyPos(Pos p)
 {
-	term.c.x = p.p[0], term.c.y = p.p[1];
+	term.c.x = p.p[0];
+	term.c.y = p.p[1];
+
 	if (!IS_SET(MODE_ALTSCREEN) && histOp)
 		term.line = &buf[histOff = p.p[2]];
 }
 
- /* Find string in history buffer, and provide string-match-lookup for highlighting matches */
+/* Find string in history buffer, and provide string-match-lookup for highlighting matches */
 static int highlighted(int x, int y)
 {
-	int const s = term.row*term.col;
+	int const s = term.row * term.col;
 	int const i = y * term.col + x;
 	int const sz = da_size(&searchStr);
-	return sz && i<s && mark[i] != sz && i + mark[i] < s && !mark[i + mark[i]];
+
+	return sz && i < s && mark[i] != sz && i + mark[i] < s && !mark[i + mark[i]];
 }
 
 static void markSearchMatches(int all)
 {
-	int sz = da_size(&searchStr), ox = 0, oy = 0, oi=0;
+	int sz = da_size(&searchStr);
+	int ox = 0, oy = 0, oi=0;
 
 	for (int y=0; sz && all && y<term.row; ++y)
 		for (int x=0; x<term.col; ++x)
@@ -119,8 +124,17 @@ static void markSearchMatches(int all)
 	for (int y = 0, wi=0, owi=0, i=0; sz && y < term.row; ++y) {
 		for (int x=0; x<term.col; ++x, wi%=sz, ++i, owi=wi) {
 			if (all || term.dirty[y]) {
-				mark[i]=sz-(wi=(da_getu32(&searchStr,wi,1)==term.line[y][x].u?wi+1:0));
-				if (wi==1) ox=x, oy=y, oi=i; else if (!wi && owi) x=ox, y=oy, i=oi;
+				wi = (da_getu32(&searchStr,wi,1) == term.line[y][x].u) ? wi + 1 : 0;
+				mark[i] = sz - wi;
+				if (wi==1) {
+					ox = x;
+					oy = y;
+					oi = i;
+				} else if (!wi && owi) {
+					x = ox;
+					y = oy;
+					i = oi;
+				}
 			}
 		}
 	}
@@ -133,7 +147,11 @@ static void markSearchMatches(int all)
 static int findString(int s, int all)
 {
 	Pos p = (Pos) {
-		.p = { term.c.x, term.c.y, IS_SET(MODE_ALTSCREEN) ? 0 : histOff }
+		.p = {
+			term.c.x,
+			term.c.y,
+			IS_SET(MODE_ALTSCREEN) ? 0 : histOff
+		}
 	};
 
 	historyMove(s, 0, 0);
@@ -141,7 +159,7 @@ static int findString(int s, int all)
 	uint32_t maxIter = rows() * term.col + strSz;
 	uint32_t wIdx=0;
 
-	for (uint32_t i=0, wi = 0; wIdx<strSz && ++i<=maxIter; historyMove(s, 0, 0), wi=wIdx) {
+	for (uint32_t i=0, wi = 0; wIdx < strSz && ++i <= maxIter; historyMove(s, 0, 0), wi=wIdx) {
 		wIdx = (da_getu32(&searchStr, wIdx, s>0) == cChar()) ? wIdx + 1:0;
 		if (wi && !wIdx)
 			historyMove(-(int)(s*wi), 0, 0);
@@ -157,9 +175,8 @@ static int findString(int s, int all)
 }
 
 void normalMode() {
-    historyModeToggle((termwin.mode ^=MODE_NORMAL) & MODE_NORMAL);
+    historyModeToggle((termwin.mode ^= MODE_NORMAL) & MODE_NORMAL);
 }
-
 
  /* Execute series of normal-mode commands from char array / decoded from dynamic array */
 ExitState pressKeys(char const* s, size_t e)
@@ -311,7 +328,10 @@ ExitState kPressHist(char const *cs, size_t len, int ctrl, KeySym const *kSym)
 	          quantifier=num&&(cs[0]!='0'||state.m.c), ins=!search &&noOp &&len &&cs[0]=='i';
 	exited = 0;
 	ExitState result = success;
-	if (esc || ret || ins) { result = exitMotion, len = 0;
+	if (esc || ret || ins) {
+		result = exitMotion;
+		len = 0;
+
 	} else if (kSym && *kSym == XK_BackSpace) {
 		if ((search || state.m.c) && da_size(&cCmd))
 			da_pop(&cCmd);
@@ -327,16 +347,23 @@ ExitState kPressHist(char const *cs, size_t len, int ctrl, KeySym const *kSym)
 
 			applyPos(state.m.searchPos);
 			findString(state.m.search==fw ? 1 : -1, 1);
-		} else if (state.m.c) state.m.c /= 10;
+		} else if (state.m.c) {
+			state.m.c /= 10;
+		}
 		len = 0;
 	} else if (search) {
-		if (len >= 1) decodeTo(cs, len, &searchStr);
+		if (len >= 1)
+			decodeTo(cs, len, &searchStr);
 		applyPos(state.m.searchPos);
 		findString(state.m.search==fw ? 1 : -1, 1);
-	} else if (len == 0) { result = failed;
-	} else if (quantifier) { state.m.c = min(SHRT_MAX, (int)state.m.c*10+cs[0]-48);
+	} else if (len == 0) {
+		result = failed;
+	} else if (quantifier) {
+		state.m.c = min(SHRT_MAX, (int)state.m.c*10+cs[0]-48);
 	} else if (state.cmd.infix && state.cmd.op && (result = expandExpression(cs[0]), len=0)) {
-	} else if (cs[0] == 'd') { state = defaultNormalMode; result = exitMotion; state.m.active = 1;
+	} else if (cs[0] == 'd') {
+		state = defaultNormalMode;
+		result = exitMotion; state.m.active = 1;
 	} else if (cs[0] == '.') {
 		if (da_size(&cCmd))
 			da_assign(&lCmd, &cCmd);
@@ -344,7 +371,8 @@ ExitState kPressHist(char const *cs, size_t len, int ctrl, KeySym const *kSym)
 		executeCommand((uint32_t*) da_item_at(&lCmd, 0), da_size(&lCmd));
 		da_empty(&cCmd);
 		len = 0;
-	} else if (cs[0] == 'r') { tfulldirt();
+	} else if (cs[0] == 'r') {
+		tfulldirt();
 	} else if (cs[0] == 'c') {
 		da_empty(&lCmd);
 		da_empty(&cCmd);
@@ -356,41 +384,58 @@ ExitState kPressHist(char const *cs, size_t len, int ctrl, KeySym const *kSym)
 		state.m.search = (Search) cs[0];
 		state.m.searchPos = (Pos){.p={term.c.x, term.c.y, prevYOff}};
 		state.m.active = 1;
-	} else if (cs[0]==infix_i || cs[0]==infix_a) { state.cmd.infix=(Infix) cs[0];
+	} else if (cs[0]==infix_i || cs[0]==infix_a) {
+		state.cmd.infix =( Infix) cs[0];
 	} else if (cs[0] == 'y') {
 		if (state.cmd.op) {
 			result = (state.cmd.op == yank || state.cmd.op == visualLine) ? exitOp : exitMotion;
-			if (state.cmd.op == yank) selstart(0, term.c.y, 0);
-		} else selstart(term.c.x, term.c.y, 0);
+			if (state.cmd.op == yank)
+				selstart(0, term.c.y, 0);
+		} else {
+			selstart(term.c.x, term.c.y, 0);
+		}
 		state.cmd.op = yank;
 	} else if (cs[0] == visual || cs[0] == visualLine) {
 		if (state.cmd.op != (Op) cs[0]) {
 			state.cmd = defaultNormalMode.cmd;
 			state.cmd.op = (Op) cs[0];
 			selstart(cs[0] == visualLine ?0 :term.c.x, term.c.y, 0);
-		} else result = exitOp;
-	} else if (!(result =executeMotion((char) (len?cs[0]:0), ctrl?kSym:NULL))) {
-		result=failed;
+		} else {
+			result = exitOp;
+		}
+	} else if (!(result = executeMotion((char) (len ? cs[0] : 0), ctrl ? kSym : NULL))) {
+		result = failed;
 		for (size_t i = 0; !ctrl && i < amountNmKeys; ++i)
-			if (cs[0]==nmKeys[i][0] &&
-			   failed!=(result=pressKeys(&nmKeys[i][1], strlen(nmKeys[i])-1))) goto end;
+			if (cs[0] == nmKeys[i][0] &&
+				failed != (result = pressKeys(&nmKeys[i][1], strlen(nmKeys[i])-1)))
+				goto end;
 	} // Operation/Motion finished if valid: update cmd string, extend selection, update search
+
 	if (result != failed) {
-		if (len == 1 && !ctrl) decodeTo(cs, len, &cCmd);
+		if (len == 1 && !ctrl)
+            decodeTo(cs, len, &cCmd);
+
 		if ((state.cmd.op == visualLine) || ((state.cmd.op == yank) && (result == exitOp))) {
-			int const off = term.c.y + (IS_SET(MODE_ALTSCREEN) ? 0 : histOff) < sel.ob.y; //< Selection start below end.
+            /* Selection start below end. */
+			int const off = term.c.y + (IS_SET(MODE_ALTSCREEN) ? 0 : histOff) < sel.ob.y;
 			sel.ob.x = off ? term.col - 1 : 0;
 			selextend(off ? 0 : term.col-1, term.c.y, sel.type, 0);
 		} else if (sel.oe.x != -1) {
 			selextend(term.c.x, term.c.y, sel.type, 0);
 		}
 	} // Set repaint for motion or status bar
-	if (!IS_SET(MODE_ALTSCREEN) && prevYOff != histOff) tfulldirt();
-	// Terminate Motion / operation if thus indicated
+
+	if (!IS_SET(MODE_ALTSCREEN) && prevYOff != histOff)
+        tfulldirt();
+
+	/* Terminate Motion / operation if thus indicated */
 	if (result == exitMotion) {
-		if (!state.m.active) result = (exited=noOp) ? finish : exitOp;
-		 state.m.active = (int) (state.m.c = 0u);
+		if (!state.m.active)
+			result = (exited = noOp) ? finish : exitOp;
+
+		state.m.active = (int) (state.m.c = 0u);
 	}
+
 	if (result == exitOp || result == finish) {
 		if (state.cmd.op == yank) {
 			xsetsel(getsel());
@@ -407,9 +452,9 @@ ExitState kPressHist(char const *cs, size_t len, int ctrl, KeySym const *kSym)
 
 	styleCmd = style[state.cmd.op==yank ? 1 : (state.cmd.op==visual ? 2 :
 											  (state.cmd.op==visualLine ? 3 :0))];
-	int const posLin = !IS_SET(MODE_ALTSCREEN) ? rangeY(insertOff-histOff):0, h=rows()-term.row;
+	int const posLin = !IS_SET(MODE_ALTSCREEN) ? rangeY(insertOff-histOff) : 0, h=rows()-term.row;
 
-	if (!posLin || posLin==h || !h)
+	if (!posLin || posLin == h || !h)
 		strcpy(posBuffer, posLin ? " [BOT] " : " [TOP] ");
 	else
 		sprintf(posBuffer, " % 3d%c  ", min(100, max(0, (int)(.5 + posLin * 100. / h))),'%');
@@ -447,16 +492,16 @@ void historyOverlay(int x, int y, Glyph* g)
 		else if (x > term.col - 7)
 			g->u = (Rune)(posBuffer[x - term.col + 7]);
 		else
-			getChar(da_size(&cCmd) ?&cCmd :&lCmd, g, term.row-1, term.col-7, term.col/3-6, x);
+			getChar(da_size(&cCmd) ? &cCmd : &lCmd, g, term.row-1, term.col-7, term.col/3-6, x);
 
 	} else if (highlighted(x, y)) {
 		g->bg = highlightBg, g->fg = highlightFg;
 
-	} else if ((x==cHist->x) ^ (y==cHist->y)) {
+	} else if ((x == cHist->x) ^ (y == cHist->y)) {
 		g->bg = currentBg;
 
-	} else if (x==cHist->x) {
-		g->mode^=ATTR_REVERSE;
+	} else if (x == cHist->x) {
+		g->mode ^= ATTR_REVERSE;
 	}
 }
 
@@ -480,6 +525,10 @@ void historyPreDraw()
 
 	// Update search results either only for lines with new content or all results if exiting
 	markSearchMatches(exited);
-	op = (Pos){.p = {term.c.x, term.c.y, 0}};
+	op = (Pos){
+		.p = {
+			term.c.x, term.c.y, 0
+		}
+	};
 	historyOpToggle(-1, 0);
 }
