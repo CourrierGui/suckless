@@ -1275,7 +1275,9 @@ void xinit(int cols, int rows)
 
 int xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x, int y)
 {
-	float winx = termwin.hborderpx + x * termwin.cw, winy = termwin.vborderpx + y * termwin.ch, xp, yp;
+	float winx = termwin.hborderpx + x * termwin.cw;
+    float winy = termwin.vborderpx + y * termwin.ch;
+    float xp, yp;
 	ushort mode, prevmode = USHRT_MAX;
 	Font *font = &dc.font;
 	int frcflags = FRC_NORMAL;
@@ -1685,8 +1687,7 @@ xsettitle(char *p)
 	XFree(prop.value);
 }
 
-int
-xstartdraw(void)
+int xstartdraw(void)
 {
 	return IS_SET(MODE_VISIBLE);
 }
@@ -1718,12 +1719,12 @@ void xdrawline(Line line, int x1, int y1, int x2)
 		}
 		i++;
 	}
+
 	if (i > 0)
 		xdrawglyphfontspecs(specs, base, i, ox, y1);
 }
 
-void
-xfinishdraw(void)
+void xfinishdraw(void)
 {
 	XCopyArea(xw.dpy, xw.buf, xw.win, dc.gc, 0, 0, termwin.w,
 			  termwin.h, 0, 0);
@@ -1732,8 +1733,7 @@ xfinishdraw(void)
 				defaultfg : defaultbg].pixel);
 }
 
-void
-xximspot(int x, int y)
+void xximspot(int x, int y)
 {
 	if (xw.ime.xic == NULL)
 		return;

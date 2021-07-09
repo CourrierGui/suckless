@@ -175,7 +175,7 @@ typedef struct {
 	int col;      /* nb col */
 	Line *line;   /* screen */
 	Line *alt;    /* alternate screen */
-	int *dirty;   /* dirtyness of lines */
+	int *dirty;   /* dirtyness of lines: if a line is dirty, it will be redrawn */
 	TCursor c;    /* cursor */
 	int ocx;      /* old cursor col */
 	int ocy;      /* old cursor row */

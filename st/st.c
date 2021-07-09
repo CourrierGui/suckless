@@ -1,6 +1,8 @@
 /* See LICENSE for license details. */
+
 #define _XOPEN_SOURCE
 #define _DEFAULT_SOURCE
+
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
@@ -25,11 +27,11 @@
 #include "normalMode.h"
 
 #if   defined(__linux)
- #include <pty.h>
+#  include <pty.h>
 #elif defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
- #include <util.h>
+#  include <util.h>
 #elif defined(__FreeBSD__) || defined(__DragonFly__)
- #include <libutil.h>
+#  include <libutil.h>
 #endif
 
 /* Arbitrary sizes */
@@ -181,7 +183,7 @@ void historyOpToggle(int start, int paint)
 	histOp += start;
 	if (histMode && altToggle) {
 		tswapscreen();
-		memset(term.dirty,0,sizeof(*term.dirty)*term.row);
+		memset(term.dirty, 0, sizeof(*term.dirty) * term.row);
 	}
 	tcursor(CURSOR_LOAD);
 	*(!IS_SET(MODE_ALTSCREEN)?&term.line:&term.alt)=&buf[histOp?histOff:insertOff];
@@ -245,18 +247,29 @@ int historyBufferScroll(int n)
 int historyMove(int x, int y, int ly)
 {
 	historyOpToggle(1, 1);
-	y += ((term.c.x += x) < 0 ?term.c.x-term.col :term.c.x) / term.col;//< x
-	if ((term.c.x %= term.col) < 0) term.c.x += term.col;
-	if ((term.c.y += y) >= term.row) ly += term.c.y - term.row + 1;    //< y
-	else if (term.c.y < 0) ly += term.c.y;
+	term.c.x += x;
+	y += (term.c.x < 0 ? term.c.x - term.col : term.c.x) / term.col; //< x
+	if ((term.c.x %= term.col) < 0)
+		term.c.x += term.col;
+
+	if ((term.c.y += y) >= term.row)
+		ly += term.c.y - term.row + 1;    //< y
+	else if (term.c.y < 0)
+		ly += term.c.y;
+
 	term.c.y = MIN(MAX(term.c.y, 0), term.row - 1);
+
 	// Check if scroll is necessary / arrived at top / bottom of terminal history
 	int t = 0, b = 0, finTop = ly < 0, finBot = ly > 0;
+
 	if (!IS_SET(MODE_ALTSCREEN)) {
-		b=rangeY(insertOff-histOff), t=-rangeY(-term.row-(insertOff-histOff));
+		b =  rangeY(insertOff-histOff);
+		t = -rangeY(-term.row-(insertOff-histOff));
 		finBot = ly > b, finTop=histMode&&((-ly>-t));
 	}
-	if ((finTop || finBot) && (x||y)) term.c.x = finBot ? term.col-1 : 0;
+	if ((finTop || finBot) && (x||y))
+		term.c.x = finBot ? term.col-1 : 0;
+
 	historyBufferScroll(finBot ? b : (finTop ? t : ly));
 	historyOpToggle(-1, 1);
 	return finTop || finBot;
@@ -291,14 +304,18 @@ void selnormalize(void)
 	for (int i = 0; i < term.row; ++i) {
 		int const n = nBet ? BETWEEN(i, sel.nb.y, sel.ne.y)
 		                   : OUT(i, sel.nb.y, sel.ne.y);
-		term.dirty[i] |= (sel.type == SEL_RECTANGULAR && n) ||
-		        (n != (oBet ? BETWEEN(i,oldb,olde) : OUT(i,oldb,olde)));
+		term.dirty[i] |= (sel.type == SEL_RECTANGULAR && n)
+			|| (n != (oBet ? BETWEEN(i,oldb,olde) : OUT(i,oldb,olde)));
 
 	}
-	if (BETWEEN(oldb, 0, term.row - 1)) term.dirty[oldb] = 1;
-	if (BETWEEN(olde, 0, term.row - 1)) term.dirty[olde] = 1;
-	if (BETWEEN(sel.nb.y, 0, term.row - 1)) term.dirty[sel.nb.y] = 1;
-	if (BETWEEN(sel.ne.y, 0, term.row - 1)) term.dirty[sel.ne.y] = 1;
+	if (BETWEEN(oldb, 0, term.row - 1))
+		term.dirty[oldb] = 1;
+	if (BETWEEN(olde, 0, term.row - 1))
+		term.dirty[olde] = 1;
+	if (BETWEEN(sel.nb.y, 0, term.row - 1))
+		term.dirty[sel.nb.y] = 1;
+	if (BETWEEN(sel.ne.y, 0, term.row - 1))
+		term.dirty[sel.ne.y] = 1;
 
 	historyOpToggle(-1, 1);
 }
