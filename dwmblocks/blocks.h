@@ -6,8 +6,9 @@
  * recompile using the make command.
  */
 
-static const Block blocks[] = {
+static const struct block blocks[] = {
 	/*Icon*/  /*Command*/                   /*Update Interval*/ /*Update Signal*/
+	{"",      "tasks",                      30,                 12             },
 	{"",      "brightness",                  0,                 11             },
 	{"",      "volume",                      0,                 10             },
 	{"",      "internet",                    5,                  4             },

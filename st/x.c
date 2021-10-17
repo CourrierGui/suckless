@@ -1,4 +1,5 @@
 /* See LICENSE for license details. */
+
 #include <errno.h>
 #include <math.h>
 #include <limits.h>
@@ -8,6 +9,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <libgen.h>
+#include <stdbool.h>
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
 #include <X11/cursorfont.h>
@@ -118,7 +120,6 @@ static void xloadsparefonts(void);
 static void xunloadfont(Font *);
 static void xunloadfonts(void);
 static void xsetenv(void);
-static void xseturgency(int);
 static int evcol(XEvent *);
 static int evrow(XEvent *);
 
@@ -294,8 +295,7 @@ int evrow(XEvent *e)
 	return y / termwin.ch;
 }
 
-void
-mousesel(XEvent *e, int done)
+void mousesel(XEvent *e, int done)
 {
 	int type, seltype = SEL_REGULAR;
 	uint state = e->xbutton.state & ~(Button1Mask | forcemousemod);
@@ -311,8 +311,7 @@ mousesel(XEvent *e, int done)
 		setsel(getsel(), e->xbutton.time);
 }
 
-void
-mousereport(XEvent *e)
+void mousereport(XEvent *e)
 {
 	int len, x = evcol(e), y = evrow(e),
 	    button = e->xbutton.button, state = e->xbutton.state;
@@ -376,8 +375,7 @@ mousereport(XEvent *e)
 	ttywrite(buf, len, 0);
 }
 
-uint
-buttonmask(uint button)
+uint buttonmask(uint button)
 {
 	return button == Button1 ? Button1Mask
 	     : button == Button2 ? Button2Mask
@@ -387,8 +385,7 @@ buttonmask(uint button)
 	     : 0;
 }
 
-int
-mouseaction(XEvent *e, uint release)
+int mouseaction(XEvent *e, uint release)
 {
 	MouseShortcut *ms;
 
@@ -421,22 +418,25 @@ void bpress(XEvent *e)
 		return;
 
 	if (e->xbutton.button == Button1) {
-		/*
-		 * If the user clicks below predefined timeouts specific
-		 * snapping behaviour is exposed.
-		 */
+		/* If the user clicks below predefined timeouts specific
+		 * snapping behaviour is exposed. */
 		clock_gettime(CLOCK_MONOTONIC, &now);
 		int const tripleClick = TIMEDIFF(now, xsel.tclick2) <= tripleclicktimeout,
 		doubleClick = TIMEDIFF(now, xsel.tclick1) <= doubleclicktimeout;
 		if ((mouseYank || mouseSelect) && (tripleClick || doubleClick)) {
-			if (!IS_SET(MODE_NORMAL)) normalMode();
+			if (!IS_SET(MODE_NORMAL))
+				normalMode();
+
 			historyOpToggle(1, 1);
 			tmoveto(evcol(e), evrow(e));
 			if (tripleClick) {
-				if (mouseYank) pressKeys("dVy", 3);
-				if (mouseSelect) pressKeys("dV", 2);
+				if (mouseYank)
+					pressKeys("dVy", 3);
+				if (mouseSelect)
+					pressKeys("dV", 2);
 			} else if (doubleClick) {
-				if (mouseYank) pressKeys("dyiW", 4);
+				if (mouseYank)
+					pressKeys("dyiW", 4);
 				if (mouseSelect) {
 					tmoveto(evcol(e), evrow(e));
 					pressKeys("viW", 3);
@@ -444,7 +444,8 @@ void bpress(XEvent *e)
 			}
 			historyOpToggle(-1, 1);
 		} else {
-			if (!IS_SET(MODE_NORMAL)) selstart(evcol(e), evrow(e), 0);
+			if (!IS_SET(MODE_NORMAL))
+				selstart(evcol(e), evrow(e), 0);
 			else {
 				historyOpToggle(1, 1);
 				tmoveto(evcol(e), evrow(e));
@@ -1758,21 +1759,18 @@ visibility(XEvent *ev)
 	MODBIT(termwin.mode, e->state != VisibilityFullyObscured, MODE_VISIBLE);
 }
 
-void
-unmap(XEvent *ev)
+void unmap(XEvent *ev)
 {
 	termwin.mode &= ~MODE_VISIBLE;
 }
 
-void
-xsetpointermotion(int set)
+void xsetpointermotion(int set)
 {
 	MODBIT(xw.attrs.event_mask, set, PointerMotionMask);
 	XChangeWindowAttributes(xw.dpy, xw.win, CWEventMask, &xw.attrs);
 }
 
-void
-xsetmode(int set, unsigned int flags)
+void xsetmode(int set, unsigned int flags)
 {
 	int mode = termwin.mode;
 	MODBIT(termwin.mode, set, flags);
@@ -1780,8 +1778,7 @@ xsetmode(int set, unsigned int flags)
 		redraw();
 }
 
-int
-xsetcursor(int cursor)
+int xsetcursor(TermWindow *term, int cursor)
 {
 	if (!BETWEEN(cursor, 0, 7)) /* 7: st extension */
 		return 1;
@@ -1789,27 +1786,33 @@ xsetcursor(int cursor)
 	return 0;
 }
 
-void
-xseturgency(int add)
+static void xaddurgency()
 {
 	XWMHints *h = XGetWMHints(xw.dpy, xw.win);
+	h->flags |= XUrgencyHint;
 
-	MODBIT(h->flags, add, XUrgencyHint);
 	XSetWMHints(xw.dpy, xw.win, h);
 	XFree(h);
 }
 
-void
-xbell(void)
+static void xremoveurgency()
+{
+	XWMHints *h = XGetWMHints(xw.dpy, xw.win);
+	h->flags &= ~XUrgencyHint;
+
+	XSetWMHints(xw.dpy, xw.win, h);
+	XFree(h);
+}
+
+void xbell(void)
 {
 	if (!(IS_SET(MODE_FOCUSED)))
-		xseturgency(1);
+		xaddurgency();
 	if (bellvolume)
 		XkbBell(xw.dpy, xw.win, bellvolume, (Atom)NULL);
 }
 
-void
-focus(XEvent *ev)
+void focus(XEvent *ev)
 {
 	XFocusChangeEvent *e = &ev->xfocus;
 
@@ -1820,7 +1823,7 @@ focus(XEvent *ev)
 		if (xw.ime.xic)
 			XSetICFocus(xw.ime.xic);
 		termwin.mode |= MODE_FOCUSED;
-		xseturgency(0);
+		xremoveurgency();
 		if (IS_SET(MODE_FOCUS))
 			ttywrite("\033[I", 3, 0);
 	} else {
@@ -1832,14 +1835,12 @@ focus(XEvent *ev)
 	}
 }
 
-int
-match(uint mask, uint state)
+int match(uint mask, uint state)
 {
 	return mask == XK_ANY_MOD || mask == (state & ~ignoremod);
 }
 
-char*
-kmap(KeySym k, uint state)
+char *kmap(KeySym k, uint state)
 {
 	Key *kp;
 	int i;
@@ -1940,7 +1941,7 @@ void cmessage(XEvent *e)
 	if (e->xclient.message_type == xw.xembed && e->xclient.format == 32) {
 		if (e->xclient.data.l[1] == XEMBED_FOCUS_IN) {
 			termwin.mode |= MODE_FOCUSED;
-			xseturgency(0);
+			xremoveurgency();
 		} else if (e->xclient.data.l[1] == XEMBED_FOCUS_OUT) {
 			termwin.mode &= ~MODE_FOCUSED;
 		}
@@ -1958,16 +1959,10 @@ void resize(XEvent *e)
 	cresize(e->xconfigure.width, e->xconfigure.height);
 }
 
-void run(void)
+static void waitformappingevent(int *w, int *h)
 {
 	XEvent ev;
-	int w = termwin.w, h = termwin.h;
-	fd_set rfd;
-	int xfd = XConnectionNumber(xw.dpy), ttyfd, xev, drawing;
-	struct timespec seltv, *tv, now, lastblink, trigger;
-	double timeout;
 
-	/* Waiting for window mapping */
 	do {
 		XNextEvent(xw.dpy, &ev);
 		/*
@@ -1978,15 +1973,35 @@ void run(void)
 		if (XFilterEvent(&ev, None))
 			continue;
 		if (ev.type == ConfigureNotify) {
-			w = ev.xconfigure.width;
-			h = ev.xconfigure.height;
+			*w = ev.xconfigure.width;
+			*h = ev.xconfigure.height;
 		}
 	} while (ev.type != MapNotify);
+}
+
+void run(void)
+{
+	XEvent ev;
+	int w = termwin.w;
+	int h = termwin.h;
+	fd_set rfd;
+	int xfd = XConnectionNumber(xw.dpy);
+	int ttyfd, xev, drawing;
+	struct timespec seltv, *tv, now, lastblink, trigger;
+	double timeout;
+
+	waitformappingevent(&w, &h);
 
 	ttyfd = ttynew(opt_line, shell, opt_io, opt_cmd);
 	cresize(w, h);
 
-	for (timeout = -1, drawing = 0, lastblink = (struct timespec){0};;) {
+	timeout = -1;
+	drawing = 0;
+	lastblink = (struct timespec){
+		.tv_sec = 0, .tv_nsec = 0
+	};
+
+	while (true) {
 		FD_ZERO(&rfd);
 		FD_SET(ttyfd, &rfd);
 		FD_SET(xfd, &rfd);
@@ -2034,8 +2049,7 @@ void run(void)
 				trigger = now;
 				drawing = 1;
 			}
-			timeout = (maxlatency - TIMEDIFF(now, trigger)) \
-			          / maxlatency * minlatency;
+			timeout = (maxlatency - TIMEDIFF(now, trigger)) / maxlatency * minlatency;
 			if (timeout > 0)
 				continue;  /* we have time, try to find idle */
 		}
@@ -2072,12 +2086,13 @@ void usage(void)
 	    " [stty_args ...]\n", argv0, argv0);
 }
 
-int
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
-	xw.l = xw.t = 0;
+	xw.l = 0;
+	xw.t = 0;
 	xw.isfixed = False;
-	xsetcursor(cursorshape);
+
+	xsetcursor(&termwin, cursorshape);
 
 	ARGBEGIN {
 	case 'a':
@@ -2097,8 +2112,7 @@ main(int argc, char *argv[])
 		opt_font = EARGF(usage());
 		break;
 	case 'g':
-		xw.gm = XParseGeometry(EARGF(usage()),
-				&xw.l, &xw.t, &cols, &rows);
+		xw.gm = XParseGeometry(EARGF(usage()), &xw.l, &xw.t, &cols, &rows);
 		break;
 	case 'i':
 		xw.isfixed = 1;

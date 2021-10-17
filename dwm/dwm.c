@@ -204,32 +204,36 @@ int applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact) {
 	return *x != c->x || *y != c->y || *w != c->w || *h != c->h;
 }
 
-void
-arrange(Monitor *m)
+void arrange(Monitor *m)
 {
 	if (m)
 		showhide(m->stack);
 	else for (m = mons; m; m = m->next)
 		showhide(m->stack);
+
 	if (m) {
 		arrangemon(m);
 		restack(m);
-	} else for (m = mons; m; m = m->next)
+	} else for (m = mons; m; m = m->next) {
 		arrangemon(m);
+	}
 }
 
-void arrangemon(Monitor *m) {
+void arrangemon(Monitor *m)
+{
 	strncpy(m->ltsymbol, m->lt[m->sellt]->symbol, sizeof m->ltsymbol);
 	if (m->lt[m->sellt]->arrange)
 		m->lt[m->sellt]->arrange(m);
 }
 
-void attach(Client *c) {
+void attach(Client *c)
+{
 	c->next = c->mon->clients;
 	c->mon->clients = c;
 }
 
-void attachaside(Client *c) {
+void attachaside(Client *c)
+{
 	Client *at = nexttagged(c);
 	if(!at) {
 		attach(c);
@@ -239,12 +243,14 @@ void attachaside(Client *c) {
 	at->next = c;
 }
 
-void attachstack(Client *c) {
+void attachstack(Client *c)
+{
 	c->snext = c->mon->stack;
 	c->mon->stack = c;
 }
 
-void swallow(Client *p, Client *c) {
+void swallow(Client *p, Client *c)
+{
 	Client *s;
 
 	if (c->noswallow > 0 || c->isterminal)
@@ -276,7 +282,8 @@ void swallow(Client *p, Client *c) {
 	updateclientlist();
 }
 
-void unswallow(Client *c) {
+void unswallow(Client *c)
+{
 	c->win = c->swallowing->win;
 
 	free(c->swallowing);

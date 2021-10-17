@@ -1,9 +1,9 @@
 #pragma once
 
-typedef struct {
-	char* icon;
-	char* command;
+struct block {
+	char *icon;
+	char *command;
 	unsigned int interval;
 	unsigned int signal;
-} Block;
+};
 

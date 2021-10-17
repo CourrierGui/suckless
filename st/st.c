@@ -26,6 +26,8 @@
 #include "win.h"
 #include "normalMode.h"
 
+extern TermWindow termwin;
+
 #if   defined(__linux)
 #  include <pty.h>
 #elif defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
@@ -129,7 +131,7 @@ static ssize_t xwrite(int, const char *, size_t);
 
 /* Globals */
 Term term;
-Selection sel;
+Selection selection;
 static CSIEscape csiescseq;
 static STREscape strescseq;
 static int iofd = 1;
@@ -218,22 +220,22 @@ int historyBufferScroll(int n)
 
 	term.line = &buf[*ptr = (buffSize+*ptr+n) % buffSize];
 
-	// Cut part of selection removed from buffer, and update sel.ne/b.
-	int const prevOffBuf = sel.alt ? 0 : insertOff + term.row;
+	// Cut part of selection removed from buffer, and update selection.ne/b.
+	int const prevOffBuf = selection.alt ? 0 : insertOff + term.row;
 
-	if (sel.ob.x != -1 && !histOp && n) {
-		int const offBuf = sel.alt ? 0 : insertOff + term.row;
-		int const pb = rangeY(sel.ob.y - prevOffBuf);
-		int const pe = rangeY(sel.oe.y - prevOffBuf);
+	if (selection.ob.x != -1 && !histOp && n) {
+		int const offBuf = selection.alt ? 0 : insertOff + term.row;
+		int const pb = rangeY(selection.ob.y - prevOffBuf);
+		int const pe = rangeY(selection.oe.y - prevOffBuf);
 
-		int const b = rangeY(sel.ob.y - offBuf), nln = n < 0;
-		int const e = rangeY(sel.oe.y - offBuf), last = offBuf - nln;
+		int const b = rangeY(selection.ob.y - offBuf), nln = n < 0;
+		int const e = rangeY(selection.oe.y - offBuf), last = offBuf - nln;
 
 		if (pb != b && ((pb < b) != nln))
-			sel.ob.y = last;
+			selection.ob.y = last;
 		if (pe != e && ((pe < e) != nln))
-			sel.oe.y = last;
-		if (sel.oe.y == last && sel.ob.y == last)
+			selection.oe.y = last;
+		if (selection.oe.y == last && selection.ob.y == last)
 			selclear();
 	}
 	selnormalize();
@@ -279,32 +281,32 @@ void selnormalize(void)
 {
 	historyOpToggle(1, 1);
 
-	int const oldb = sel.nb.y, olde = sel.ne.y;
-	if (sel.ob.x == -1) {
-		sel.ne.y = sel.nb.y = -1;
+	int const oldb = selection.nb.y, olde = selection.ne.y;
+	if (selection.ob.x == -1) {
+		selection.ne.y = selection.nb.y = -1;
 	} else {
-		int const offsetBuffer = sel.alt ? 0 : insertOff + term.row;
-		int const off = sel.alt ? 0 : (histMode ? histOff : insertOff);
-		int const nby = rangeY(sel.ob.y - off),
-		          ney = rangeY(sel.oe.y - off);
-		sel.swap = rangeY(sel.ob.y - offsetBuffer)
-		         > rangeY(sel.oe.y - offsetBuffer);
-		sel.nb.y = sel.swap ? ney : nby;
-		sel.ne.y = !sel.swap ? ney : nby;
-		int const cnb = sel.nb.y < term.row, cne = sel.ne.y < term.row;
-		if (sel.type == SEL_REGULAR && sel.ob.y != sel.oe.y) {
-			if (cnb) sel.nb.x = (!sel.swap) ? sel.ob.x : sel.oe.x;
-			if (cne) sel.ne.x = (!sel.swap) ? sel.oe.x : sel.ob.x;
+		int const offsetBuffer = selection.alt ? 0 : insertOff + term.row;
+		int const off = selection.alt ? 0 : (histMode ? histOff : insertOff);
+		int const nby = rangeY(selection.ob.y - off),
+		          ney = rangeY(selection.oe.y - off);
+		selection.swap = rangeY(selection.ob.y - offsetBuffer)
+		         > rangeY(selection.oe.y - offsetBuffer);
+		selection.nb.y = selection.swap ? ney : nby;
+		selection.ne.y = !selection.swap ? ney : nby;
+		int const cnb = selection.nb.y < term.row, cne = selection.ne.y < term.row;
+		if (selection.type == SEL_REGULAR && selection.ob.y != selection.oe.y) {
+			if (cnb) selection.nb.x = (!selection.swap) ? selection.ob.x : selection.oe.x;
+			if (cne) selection.ne.x = (!selection.swap) ? selection.oe.x : selection.ob.x;
 		} else {
-			if (cnb) sel.nb.x = MIN(sel.ob.x, sel.oe.x);
-			if (cne) sel.ne.x = MAX(sel.ob.x, sel.oe.x);
+			if (cnb) selection.nb.x = MIN(selection.ob.x, selection.oe.x);
+			if (cne) selection.ne.x = MAX(selection.ob.x, selection.oe.x);
 		}
 	}
-	int const nBet=sel.nb.y<=sel.ne.y, oBet=oldb<=olde;
+	int const nBet=selection.nb.y<=selection.ne.y, oBet=oldb<=olde;
 	for (int i = 0; i < term.row; ++i) {
-		int const n = nBet ? BETWEEN(i, sel.nb.y, sel.ne.y)
-		                   : OUT(i, sel.nb.y, sel.ne.y);
-		term.dirty[i] |= (sel.type == SEL_RECTANGULAR && n)
+		int const n = nBet ? BETWEEN(i, selection.nb.y, selection.ne.y)
+		                   : OUT(i, selection.nb.y, selection.ne.y);
+		term.dirty[i] |= (selection.type == SEL_RECTANGULAR && n)
 			|| (n != (oBet ? BETWEEN(i,oldb,olde) : OUT(i,oldb,olde)));
 
 	}
@@ -312,10 +314,10 @@ void selnormalize(void)
 		term.dirty[oldb] = 1;
 	if (BETWEEN(olde, 0, term.row - 1))
 		term.dirty[olde] = 1;
-	if (BETWEEN(sel.nb.y, 0, term.row - 1))
-		term.dirty[sel.nb.y] = 1;
-	if (BETWEEN(sel.ne.y, 0, term.row - 1))
-		term.dirty[sel.ne.y] = 1;
+	if (BETWEEN(selection.nb.y, 0, term.row - 1))
+		term.dirty[selection.nb.y] = 1;
+	if (BETWEEN(selection.ne.y, 0, term.row - 1))
+		term.dirty[selection.ne.y] = 1;
 
 	historyOpToggle(-1, 1);
 }
@@ -439,9 +441,9 @@ char *base64dec(const char *src)
 
 void selinit(void)
 {
-	sel.mode = SEL_IDLE;
-	sel.snap = 0;
-	sel.ob.x = -1;
+	selection.mode = SEL_IDLE;
+	selection.snap = 0;
+	selection.ob.x = -1;
 }
 
 int tlinelen(int y)
@@ -460,47 +462,47 @@ int tlinelen(int y)
 void selstart(int col, int row, int snap)
 {
 	selclear();
-	sel.mode = SEL_EMPTY;
-	sel.type = SEL_REGULAR;
-	sel.alt = IS_SET(MODE_ALTSCREEN);
-	sel.snap = snap;
-	sel.oe.x = sel.ob.x = col;
-	sel.oe.y = sel.ob.y = row + !sel.alt * (histMode ? histOff : insertOff);
-	if (sel.snap != 0) sel.mode = SEL_READY;
+	selection.mode = SEL_EMPTY;
+	selection.type = SEL_REGULAR;
+	selection.alt = IS_SET(MODE_ALTSCREEN);
+	selection.snap = snap;
+	selection.oe.x = selection.ob.x = col;
+	selection.oe.y = selection.ob.y = row + !selection.alt * (histMode ? histOff : insertOff);
+	if (selection.snap != 0) selection.mode = SEL_READY;
 	selnormalize();
 }
 
 void selextend(int col, int row, int type, int done)
 {
-	if (sel.mode == SEL_IDLE)
+	if (selection.mode == SEL_IDLE)
 		return;
-	if (done && sel.mode == SEL_EMPTY) {
+	if (done && selection.mode == SEL_EMPTY) {
 		selclear();
 		return;
 	}
 
-	sel.oe.x = col;
-	sel.oe.y = row + (sel.alt ? 0 : (histMode ? histOff : insertOff));
+	selection.oe.x = col;
+	selection.oe.y = row + (selection.alt ? 0 : (histMode ? histOff : insertOff));
 	selnormalize();
-	sel.type = type;
+	selection.type = type;
 
-	sel.mode = done ? SEL_IDLE : SEL_READY;
+	selection.mode = done ? SEL_IDLE : SEL_READY;
 }
 
 int selected(int x, int y)
 {
-	if (sel.mode == SEL_EMPTY || sel.ob.x == -1 ||
-			sel.alt != IS_SET(MODE_ALTSCREEN))
+	if (selection.mode == SEL_EMPTY || selection.ob.x == -1 ||
+			selection.alt != IS_SET(MODE_ALTSCREEN))
 		return 0;
 
-	if (sel.type == SEL_RECTANGULAR)
-		return BETWEEN(y, sel.nb.y, sel.ne.y)
-		    && BETWEEN(x, sel.nb.x, sel.ne.x);
+	if (selection.type == SEL_RECTANGULAR)
+		return BETWEEN(y, selection.nb.y, selection.ne.y)
+		    && BETWEEN(x, selection.nb.x, selection.ne.x);
 
-	return ((sel.nb.y > sel.ne.y) ? OUT(y, sel.nb.y, sel.ne.y)
-	                              : BETWEEN(y, sel.nb.y, sel.ne.y)) &&
-	       (y != sel.nb.y || x >= sel.nb.x) &&
-	       (y != sel.ne.y || x <= sel.ne.x);
+	return ((selection.nb.y > selection.ne.y) ? OUT(y, selection.nb.y, selection.ne.y)
+	                              : BETWEEN(y, selection.nb.y, selection.ne.y)) &&
+	       (y != selection.nb.y || x >= selection.nb.x) &&
+	       (y != selection.ne.y || x <= selection.ne.x);
 }
 
 char *getsel(void)
@@ -509,11 +511,11 @@ char *getsel(void)
 	int y, yy, bufsize, lastx;
 	const Glyph *gp, *last;
 
-	if (sel.ob.x == -1)
+	if (selection.ob.x == -1)
 		return NULL;
 
-	int const start = sel.swap ? sel.oe.y : sel.ob.y, h = rows();
-	int endy = (sel.swap ? sel.ob.y : sel.oe.y);
+	int const start = selection.swap ? selection.oe.y : selection.ob.y, h = rows();
+	int endy = (selection.swap ? selection.ob.y : selection.oe.y);
 	for (; endy < start; endy += h);
 	Line * const cbuf = IS_SET(MODE_ALTSCREEN) ? term.line : buf;
 	bufsize = (term.col+1) * (endy-start+1 ) * UTF_SIZ;
@@ -524,12 +526,12 @@ char *getsel(void)
 	for (y = start; y <= endy; y++) {
 		yy = y % h;
 
-		if (sel.type == SEL_RECTANGULAR) {
-			gp = &cbuf[yy][sel.nb.x];
-			lastx = sel.ne.x;
+		if (selection.type == SEL_RECTANGULAR) {
+			gp = &cbuf[yy][selection.nb.x];
+			lastx = selection.ne.x;
 		} else {
-			gp = &cbuf[yy][start == y ? sel.nb.x : 0];
-			lastx = (endy == y) ? sel.ne.x : term.col-1;
+			gp = &cbuf[yy][start == y ? selection.nb.x : 0];
+			lastx = (endy == y) ? selection.ne.x : term.col-1;
 		}
 		last = &cbuf[yy][lastx];
 		if (!(cbuf[yy][term.col - 1].mode & ATTR_WRAP))
@@ -559,10 +561,10 @@ char *getsel(void)
 
 void selclear(void)
 {
-	if (sel.ob.x == -1)
+	if (selection.ob.x == -1)
 		return;
-	sel.mode = SEL_IDLE;
-	sel.ob.x = -1;
+	selection.mode = SEL_IDLE;
+	selection.ob.x = -1;
 	selnormalize();
 }
 
@@ -844,8 +846,7 @@ void ttyhangup()
 	kill(pid, SIGHUP);
 }
 
-int
-tattrset(int attr)
+int tattrset(int attr)
 {
 	int i, j;
 
@@ -991,16 +992,16 @@ void tscrollup(int orig, int n)
 
 void selscroll(int orig, int n)
 {
-	if (sel.ob.x == -1)
+	if (selection.ob.x == -1)
 		return;
 
-	if (BETWEEN(sel.nb.y, orig, term.bot) != BETWEEN(sel.ne.y, orig, term.bot)) {
+	if (BETWEEN(selection.nb.y, orig, term.bot) != BETWEEN(selection.ne.y, orig, term.bot)) {
 		selclear();
-	} else if (BETWEEN(sel.nb.y, orig, term.bot)) {
-		sel.ob.y += n;
-		sel.oe.y += n;
-		if (sel.ob.y < term.top || sel.ob.y > term.bot ||
-		    sel.oe.y < term.top || sel.oe.y > term.bot) {
+	} else if (BETWEEN(selection.nb.y, orig, term.bot)) {
+		selection.ob.y += n;
+		selection.oe.y += n;
+		if (selection.ob.y < term.top || selection.ob.y > term.bot ||
+		    selection.oe.y < term.top || selection.oe.y > term.bot) {
 			selclear();
 		} else {
 			selnormalize();
@@ -1677,7 +1678,7 @@ void csihandle(void)
 	case ' ':
 		switch (csiescseq.mode[1]) {
 		case 'q': /* DECSCUSR -- Set Cursor Style */
-			if (xsetcursor(csiescseq.arg[0]))
+			if (xsetcursor(&termwin, csiescseq.arg[0]))
 				goto unknown;
 			break;
 		default:

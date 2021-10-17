@@ -20,7 +20,7 @@ extern unsigned int bg[], fg, currentBg, highlightBg, highlightFg, amountNmKeys;
 extern Term term;
 extern int histOp, histMode, histOff, insertOff, altToggle, *mark;
 extern Line *buf;
-extern Selection sel;
+extern Selection selection;
 extern TCursor c[3];
 extern TermWindow termwin;
 
@@ -302,7 +302,7 @@ ExitState executeMotion(char const cs, KeySym const *const ks)
 			term.line = &buf[histOff=insertOff];
 	} else if (cs == '0') term.c.x = 0;
 	else if (cs == '$')   term.c.x = term.col-1;
-	else if (cs == 't')   sel.type = (sel.type == SEL_REGULAR) ? SEL_RECTANGULAR : SEL_REGULAR;
+	else if (cs == 't')   selection.type = (selection.type == SEL_REGULAR) ? SEL_RECTANGULAR : SEL_REGULAR;
 	else if (cs == 'n' || cs == 'N') {
 		int const d = ((cs=='N') != (state.m.search==bw)) ? -1 : 1;
 		for (uint32_t i = state.m.c; i && findString(d, 0); --i);
@@ -451,11 +451,11 @@ ExitState kPressHist(char const *cs, size_t len, int ctrl, KeySym const *kSym)
 
 		if ((state.cmd.op == visualLine) || ((state.cmd.op == yank) && (result == exitOp))) {
 			/* Selection start below end. */
-			int const off = term.c.y + (IS_SET(MODE_ALTSCREEN) ? 0 : histOff) < sel.ob.y;
-			sel.ob.x = off ? term.col - 1 : 0;
-			selextend(off ? 0 : term.col-1, term.c.y, sel.type, 0);
-		} else if (sel.oe.x != -1) {
-			selextend(term.c.x, term.c.y, sel.type, 0);
+			int const off = term.c.y + (IS_SET(MODE_ALTSCREEN) ? 0 : histOff) < selection.ob.y;
+			selection.ob.x = off ? term.col - 1 : 0;
+			selextend(off ? 0 : term.col-1, term.c.y, selection.type, 0);
+		} else if (selection.oe.x != -1) {
+			selextend(term.c.x, term.c.y, selection.type, 0);
 		}
 	} // Set repaint for motion or status bar
 
