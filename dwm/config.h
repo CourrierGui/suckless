@@ -20,8 +20,8 @@ static unsigned int gappov          = 10; /* vert outer gap between windows and 
 static int          smartgaps       = 0;  /* 1 means no outer gap when there is only one window */
 static int          showbar         = 1;  /* 0 means no bar */
 static int          topbar          = 1;  /* 0 means bottom bar */
-static const int    vertpad         = 10; /* vertical padding of bar */
-static const int    sidepad         = 10; /* horizontal padding of bar */
+static const int    vertpad         = 9; /* vertical padding of bar */
+static const int    sidepad         = 9; /* horizontal padding of bar */
 static char         main_font[]     = "Source Code Pro:size=12";
 static char         second_font[]   = "JoyPixels:pixelsize=14:antialias=true:autohint=true";
 static char*  fonts[]               = {

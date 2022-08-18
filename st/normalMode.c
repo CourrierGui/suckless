@@ -58,9 +58,9 @@ struct NormalModeState {
 	} m;
 } defaultNormalMode, state;
 
-DynamicArray searchStr = UTF8_ARRAY;
-DynamicArray cCmd = UTF8_ARRAY;
-DynamicArray lCmd = UTF8_ARRAY;
+struct vector searchStr = UTF8_ARRAY;
+struct vector cCmd = UTF8_ARRAY;
+struct vector lCmd = UTF8_ARRAY;
 
 Glyph styleCmd;
 
@@ -71,12 +71,12 @@ char braces[6][3] = {
 
 int exited=1, overlay=1;
 
-static Rune cChar()
+static Rune cChar(Term *term)
 {
-	return term.line[term.c.y][term.c.x].u;
+	return term->line[term->c.y][term->c.x].u;
 }
 
-static int contains(Rune l, char const *values, size_t const memSize)
+static int contains(const char *values, const size_t memSize, Rune l)
 {
 	for (uint32_t i = 0; i < memSize; ++i)
 		if (l == values[i])
@@ -85,7 +85,7 @@ static int contains(Rune l, char const *values, size_t const memSize)
 	return 0;
 }
 
-static void decodeTo(char const *cs, size_t len, DynamicArray *arr)
+static void decodeTo(char const *cs, size_t len, struct vector *arr)
 {
 	char *var = da_expand(arr);
 
@@ -104,18 +104,24 @@ static void applyPos(Pos p)
 		term.line = &buf[histOff = p.p[2]];
 }
 
-/* Find string in history buffer, and provide string-match-lookup for highlighting matches */
+/* Find string in history buffer, and provide string-match-lookup for
+ * highlighting matches
+ */
 static int highlighted(int x, int y)
 {
 	int const s = term.row * term.col;
 	int const i = y * term.col + x;
 	int const sz = da_size(&searchStr);
-
-	return sz                  /* search string not empty                     */
-		&& i < s               /* index inside terminal                       */
-		&& mark[i] != sz       /* character match                             */
-		&& i + mark[i] < s     /* the end of the match is inside the terminal */
-		&& !mark[i + mark[i]]; /* the end of the match is 0                   */
+	
+	return sz /* search string not empty               */
+		/* index inside terminal                       */
+		&& i < s
+		/* character match                             */
+		&& mark[i] != sz
+		/* the end of the match is inside the terminal */
+		&& i + mark[i] < s
+		/* the end of the match is 0                   */
+		&& !mark[i + mark[i]];
 }
 
 /* mark == sz: no match found -> highlighted returns 0
@@ -140,7 +146,8 @@ static void markSearchMatches(int all)
 	for (int y = 0, wi=0, owi=0, i=0; sz && y < term.row; ++y) {
 		for (int x=0; x<term.col; ++x, wi %= sz, ++i, owi = wi) {
 			if (all || term.dirty[y]) {
-				wi = (da_getu32(&searchStr, wi, 1) == term.line[y][x].u) ? wi + 1 : 0;
+				wi = (da_getu32(&searchStr, wi, 1) ==
+					  term.line[y][x].u) ? wi + 1 : 0;
 				mark[i] = sz - wi; /* mark: sz sz 4 3 2 1 0 sz sz with sz=5 */
 
 				/* save the value of x, y and i on the first match */
@@ -181,8 +188,11 @@ static int findString(int s, int all)
 	uint32_t maxIter = rows() * term.col + strSz;
 	uint32_t wIdx = 0;
 
-	for (uint32_t i = 0, wi = 0; wIdx < strSz && ++i <= maxIter; historyMove(s, 0, 0), wi=wIdx) {
-		wIdx = (da_getu32(&searchStr, wIdx, s>0) == cChar()) ? wIdx + 1 : 0;
+	for (uint32_t i = 0, wi = 0;
+		 wIdx < strSz && ++i <= maxIter;
+		 historyMove(s, 0, 0), wi=wIdx) {
+		wIdx = (da_getu32(&searchStr, wIdx, s>0) ==
+				cChar(&term)) ? wIdx + 1 : 0;
 		if (wi && !wIdx)
 			historyMove(-(int)(s*wi), 0, 0);
 	}
@@ -196,15 +206,19 @@ static int findString(int s, int all)
 	return wIdx == strSz;
 }
 
-void normalMode() {
-    historyModeToggle((termwin.mode ^= MODE_NORMAL) & MODE_NORMAL);
+void normalMode()
+{
+	bool is_normal = (termwin.mode ^= MODE_NORMAL) & MODE_NORMAL;
+	historyModeToggle(is_normal);
 }
 
 /* Execute series of normal-mode commands from char array / decoded from dynamic array */
 ExitState pressKeys(char const* s, size_t e)
 {
 	ExitState x = success;
-	for (size_t i=0; i<e && (x=(!s[i] ? x : kPressHist(&s[i], 1, 0, NULL))); ++i);
+	for (size_t i=0;
+		 i<e && (x=(!s[i] ? x : kPressHist(&s[i], 1, 0, NULL)));
+		 ++i);
 	return x;
 }
 
@@ -212,12 +226,19 @@ static ExitState executeCommand(uint32_t *cs, size_t z)
 {
 	ExitState x = success;
 	char dc [32];
-	for (size_t i=0; i<z && (x=kPressHist(dc, utf8encode(cs[i],dc),0,NULL));++i);
+
+	for (size_t i = 0;
+		 i < z && (x = kPressHist(dc, utf8encode(cs[i], dc), 0, NULL));
+		 ++i);
+
 	return x;
 }
 
-/* Get character for overlay, if the overlay (st) has something to show, else normal char. */
-static void getChar(DynamicArray *st, Glyph *glyphChange, int y, int xEnd, int width, int x)
+/* Get character for overlay, if the overlay (st) has something to show, else
+ * normal char.
+ */
+static void getChar(struct vector *st, Glyph *glyphChange,
+					int y, int xEnd, int width, int x)
 {
 	if (x < xEnd - min(min(width, xEnd), da_size(st)))
 		*glyphChange = term.line[y][x];
@@ -260,7 +281,7 @@ static ExitState expandExpression(char l)
 		mot[9] = (char)(a ? 0 : 'h');
 
 		for (int i=found=0; !found && i < 6; ++i) {
-			if ((found = contains(l, braces[i], 2))) {
+			if ((found = contains(braces[i], 2, l))) {
 				mot[2] = braces[i][0];
 				mot[7] = braces[i][1];
 			}
@@ -306,7 +327,7 @@ ExitState executeMotion(char const cs, KeySym const *const ks)
 	else if (cs == 'n' || cs == 'N') {
 		int const d = ((cs=='N') != (state.m.search==bw)) ? -1 : 1;
 		for (uint32_t i = state.m.c; i && findString(d, 0); --i);
-	} else if (contains(cs, "wWeEbB", 6)) {
+	} else if (contains("wWeEbB", 6, cs)) {
 		int const low = cs <= 90;
 		int const off = tolower(cs) != 'w';
 		int const sgn = (tolower(cs) == 'b') ? -1 : 1;
@@ -323,22 +344,27 @@ ExitState executeMotion(char const cs, KeySym const *const ks)
 
 			 /* Determine if the category of the current letter changed since
 			  * last iteration. */
-			int n = 1 << (contains(cChar(),wDelS,s) ? (2-low) : !contains(cChar(),wDelL,l));
+			int n = 1 << (contains(wDelS, s, cChar(&term)) ?
+						  (2 - low) :
+						  !contains(wDelL, l, cChar(&term)));
 			int found = ((on |= n) ^ n) && ((off ? (on ^ n) : n) != 1);
 
-			 /* If a reverse offset is to be performed and this is the last letter: */
+			 /* If a reverse offset is to be performed and this is the last letter */
 			if (found && off)
 				historyMove(-sgn, 0, 0);
 
-			// Terminate iteration: reset #it and old n value #on and decrease operation count:
+			/* Terminate iteration: reset #it and old n value #on and decrease
+			 * operation count
+			 */
 			if (found) {
 				it = -1;
 				on = 0;
 				--state.m.c;
 			}
 		}
-	} else
+	} else {
 		return failed;
+	}
 
 	state.m.c = 0;
 
@@ -394,7 +420,8 @@ ExitState kPressHist(char const *cs, size_t len, int ctrl, KeySym const *kSym)
 		result = failed;
 	} else if (quantifier) {
 		state.m.c = min(SHRT_MAX, (int)state.m.c*10+cs[0]-48);
-	} else if (state.cmd.infix && state.cmd.op && (result = expandExpression(cs[0]), len=0)) {
+	} else if (state.cmd.infix
+			   && state.cmd.op && (result = expandExpression(cs[0]), len=0)) {
 	} else if (cs[0] == 'd') {
 		state = defaultNormalMode;
 		result = exitMotion; state.m.active = 1;
@@ -422,7 +449,8 @@ ExitState kPressHist(char const *cs, size_t len, int ctrl, KeySym const *kSym)
 		state.cmd.infix =( Infix) cs[0];
 	} else if (cs[0] == 'y') {
 		if (state.cmd.op) {
-			result = (state.cmd.op == yank || state.cmd.op == visualLine) ? exitOp : exitMotion;
+			result = (state.cmd.op == yank
+					  || state.cmd.op == visualLine) ? exitOp : exitMotion;
 			if (state.cmd.op == yank)
 				selstart(0, term.c.y, 0);
 		} else {
@@ -437,21 +465,26 @@ ExitState kPressHist(char const *cs, size_t len, int ctrl, KeySym const *kSym)
 		} else {
 			result = exitOp;
 		}
-	} else if (!(result = executeMotion((char) (len ? cs[0] : 0), ctrl ? kSym : NULL))) {
+	} else if (!(result = executeMotion((char) (len ? cs[0] : 0),
+										ctrl ? kSym : NULL))) {
 		result = failed;
+
 		for (size_t i = 0; !ctrl && i < amountNmKeys; ++i)
 			if (cs[0] == nmKeys[i][0] &&
 				failed != (result = pressKeys(&nmKeys[i][1], strlen(nmKeys[i])-1)))
 				goto end;
-	} // Operation/Motion finished if valid: update cmd string, extend selection, update search
+	} /* Operation/Motion finished if valid: update cmd string, extend
+		 selection, update search */
 
 	if (result != failed) {
 		if (len == 1 && !ctrl)
 			decodeTo(cs, len, &cCmd);
 
-		if ((state.cmd.op == visualLine) || ((state.cmd.op == yank) && (result == exitOp))) {
+		if ((state.cmd.op == visualLine)
+			|| ((state.cmd.op == yank) && (result == exitOp))) {
 			/* Selection start below end. */
-			int const off = term.c.y + (IS_SET(MODE_ALTSCREEN) ? 0 : histOff) < selection.ob.y;
+			int const off = term.c.y
+				+ (IS_SET(MODE_ALTSCREEN) ? 0 : histOff) < selection.ob.y;
 			selection.ob.x = off ? term.col - 1 : 0;
 			selextend(off ? 0 : term.col-1, term.c.y, selection.type, 0);
 		} else if (selection.oe.x != -1) {
@@ -518,7 +551,11 @@ void historyOverlay(int x, int y, Glyph* g)
 
 	TCursor const *cHist = histOp ? &term.c : &c[0];
 
-	if(overlay && term.col > 9 && term.row > 4 && (x > (2*term.col/3)) && (y >= (term.row-2))) {
+	if(overlay
+	   && term.col > 9
+	   && term.row > 4
+	   && (x > (2*term.col/3))
+	   && (y >= (term.row-2))) {
 		*g = (y == term.row - 2) ? styleSearch : styleCmd;
 
 		if (y == term.row-2)
@@ -526,7 +563,8 @@ void historyOverlay(int x, int y, Glyph* g)
 		else if (x > term.col - 7)
 			g->u = (Rune)(posBuffer[x - term.col + 7]);
 		else
-			getChar(da_size(&cCmd) ? &cCmd : &lCmd, g, term.row-1, term.col-7, term.col/3-6, x);
+			getChar(da_size(&cCmd) ? &cCmd : &lCmd,
+					g, term.row-1, term.col-7, term.col/3-6, x);
 
 	} else if (highlighted(x, y)) {
 		g->bg = highlightBg, g->fg = highlightFg;
@@ -550,14 +588,15 @@ void historyPreDraw()
 	else if (exited || (op.p[1] != term.c.y))
 		term.dirty[term.c.y] = term.dirty[op.p[1]] = 1;
 
-	for (int i=0; (exited || term.c.x != op.p[0]) && i<term.row; ++i) {
+	for (int i = 0; (exited || term.c.x != op.p[0]) && i<term.row; ++i) {
 		if (!term.dirty[i]) {
 			xdrawline(term.line[i], term.c.x, i, term.c.x + 1);
 			xdrawline(term.line[i], op.p[0], i, op.p[0] + 1);
 		}
 	}
 
-	// Update search results either only for lines with new content or all results if exiting
+	/* Update search results either only for lines with new content or all
+	 * results if exiting */
 	markSearchMatches(exited);
 	op = (Pos){
 		.p = {
